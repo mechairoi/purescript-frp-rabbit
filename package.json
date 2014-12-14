@@ -1,0 +1,16 @@
+{
+  "name": "purescript-frp-rabbit",
+  "version": "0.0.1",
+  "description": "A FRP framework for PureScript",
+  "dependencies": {
+    "virtual-dom": "0.0.23",
+    "vtree": "*"
+  },
+  "devDependencies": {
+    "browserify": "^7.0.0",
+    "gulp": "^3.8.10",
+    "gulp-purescript": "^0.1.2",
+    "vinyl-source-stream": "^1.0.0",
+    "vinyl-transform": "^1.0.0"
+  }
+}
