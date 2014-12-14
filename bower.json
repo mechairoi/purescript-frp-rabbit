@@ -18,7 +18,7 @@
     "tests"
   ],
   "dependencies": {
-    "purescript-virtual-dom": "*",
+    "purescript-virtual-dom": "~0.1.0",
     "purescript-virtual-dom-typed": "*",
     "purescript-tuples": "~0.2.2",
     "purescript-maybe": "~0.2.1",
