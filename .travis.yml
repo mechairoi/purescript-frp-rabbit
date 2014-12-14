@@ -1,0 +1,14 @@
+language: haskell
+ghc: 7.8
+install:
+  - cabal install purescript --force-reinstalls
+  - sudo add-apt-repository ppa:chris-lea/node.js -y
+  - sudo apt-get update -q
+  - sudo apt-get install nodejs
+  - npm install -g bower
+notifications:
+  email: true
+script:
+  - npm install
+  - bower install
+  - $(npm bin)/gulp test
