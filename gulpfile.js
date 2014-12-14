@@ -4,13 +4,8 @@ var gulp        = require('gulp')
   , purescript  = require('gulp-purescript')
   , source      = require('vinyl-source-stream')
   , browserify  = require('browserify')
-  , transform   = require('vinyl-transform')
   , path        = require("path")
   ;
-
-var browserified = transform(function(filename){
-  return browserify(filename).bundle();
-});
 
 var paths = {
   src: 'src/**/*.purs',
