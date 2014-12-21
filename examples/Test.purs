@@ -11,7 +11,9 @@ import FRP.Rabbit (runRabbit)
 import FRP.Rabbit.Handler (createEventHandler)
 import FRP.Rabbit.Signal (Signal(..), stateful)
 
-main = windowOnLoad $ runRabbit rootVNode documentBodyAppendChild
+main = windowOnLoad $ do
+  runRabbit rootVNode documentBodyAppendChild
+  runRabbit rootVNode documentBodyAppendChild
 
 foreign import windowOnLoad """
   function windowOnLoad(callback) {
