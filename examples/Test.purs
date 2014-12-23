@@ -5,8 +5,7 @@ import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import Control.Monad.Trans
 import DOM
-import VirtualDOM.VTree
-import VirtualDOM.Typed
+import VirtualDOM.VTree.Typed
 import FRP.Rabbit (runRabbit)
 import FRP.Rabbit.Handler (createEventHandler)
 import FRP.Rabbit.Signal (Signal(..), stateful)
@@ -46,9 +45,9 @@ rootVNode = do
   eh <- lift $ createEventHandler
   let state = stateful (\e state -> increment state) initialState eh.event
   s <- (return initialState) <> state
-  return $ node "div" ([] :: [Attr])
-    [ node "p" ([] :: [Attr]) [ vtext $ show s.counter ] Nothing Nothing
-    , node "button"
+  return $ vnode "div" []
+    [ vnode "p" [] [ vtext $ show s.counter ] Nothing Nothing
+    , vnode "button"
         [ handler "onclick" eh.handler ]
         [ vtext "++" ]
         Nothing Nothing
