@@ -2,12 +2,16 @@ module FRP.Rabbit where
 
 import Data.Maybe
 import Data.Tuple
+import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import qualified VirtualDOM as V
 import VirtualDOM.VTree
 import FRP.Rabbit.Signal (Signal(..), runSignal)
+import DOM
 
--- runRabbit :: Signal m VTree
+type RabbitEff eff = Eff (dom :: DOM, ref :: Ref | eff)
+
+runRabbit :: forall a eff. Signal (RabbitEff eff) VTree -> (Node -> RabbitEff eff Unit) -> RabbitEff eff Unit
 runRabbit vtree initCallback = do
   ref <- newRef Nothing
   runSignal vtree $ \newVNode -> do
