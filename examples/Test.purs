@@ -7,7 +7,7 @@ import Control.Monad.Trans
 import DOM
 import VirtualDOM.VTree.Typed
 import FRP.Rabbit (runRabbit)
-import FRP.Rabbit.Handler (createEventHandler)
+import FRP.Rabbit.Handler (createHandler)
 import FRP.Rabbit.Signal (Signal(..), stateful)
 
 main = windowOnLoad $ do
@@ -42,8 +42,8 @@ increment state = state { counter = state.counter + 1 }
 
 rootVNode :: (Signal (Eff (dom :: DOM, ref :: Ref)) VTree)
 rootVNode = do
-  eh <- lift $ createEventHandler
-  let state = stateful (\e state -> increment state) initialState eh.event
+  eh <- lift $ createHandler
+  let state = stateful (\e state -> increment state) initialState eh.signal
   s <- (return initialState) <> state
   return $ vnode "div" []
     [ vnode "p" [] [ vtext $ show s.counter ] Nothing Nothing
