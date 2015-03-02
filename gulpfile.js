@@ -12,7 +12,8 @@ var paths = {
   doc: 'MODULE.md',
   bowerSrc: 'bower_components/purescript-*/src/**/*.purs',
   dest: 'output',
-  test: 'examples/*.purs'
+  example: 'examples/*.purs',
+  test: 'test/*.purs'
 };
 
 gulp.task('make', function() {
@@ -27,16 +28,22 @@ gulp.task('test-make', function() {
     .pipe(gulp.dest(paths.dest));
 });
 
-gulp.task('test', ['test-make'], function() {
+gulp.task('example-make', function() {
+  return gulp.src([paths.src, paths.example].concat(paths.bowerSrc))
+    .pipe(purescript.pscMake({}))
+    .pipe(gulp.dest(paths.dest));
+});
+
+gulp.task('example', ['example-make'], function() {
   var nodePath = process.env.NODE_PATH;
   var buildPath = path.resolve(paths.dest);
   process.env["NODE_PATH"] = nodePath ? (buildPath + ":" + nodePath) : buildPath;
   return browserify({
-    entries: "../examples/test.js",
+    entries: "../examples/example.src.js",
     basedir: buildPath
   }).bundle()
-    .pipe(source('test.js'))
-    .pipe(gulp.dest('./test/'));
+    .pipe(source('example.js'))
+    .pipe(gulp.dest('./examples/'));
 });
 
 gulp.task('docs', function() {
@@ -46,7 +53,7 @@ gulp.task('docs', function() {
 });
 
 gulp.task('psci', function() {
-  return gulp.src([paths.src, paths.test].concat(paths.bowerSrc))
+  return gulp.src([paths.src, paths.test, paths.example].concat(paths.bowerSrc))
     .pipe(purescript.dotPsci());
 });
 

@@ -1,4 +1,4 @@
-module Test.FRP.Rabbit.Signal where
+module Example.FRP.Rabbit.Signal where
 
 import Data.Maybe
 import Control.Monad.Eff
