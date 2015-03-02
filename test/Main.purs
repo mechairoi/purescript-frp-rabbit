@@ -47,7 +47,7 @@ main = runTest do
                                                                                                         b 2
                                                                                                         a 3
 
-               assertFn "signal fired in order a1, b2, a3" $ [[1,2],[3,2]] `whenSignalsFire` \a b -> do b 2
+               assertFn "signal fired in order b2, a1, a3" $ [[1,2],[3,2]] `whenSignalsFire` \a b -> do b 2
                                                                                                         a 1
                                                                                                         a 3
 
