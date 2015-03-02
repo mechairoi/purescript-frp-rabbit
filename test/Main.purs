@@ -13,15 +13,6 @@ import FRP.Rabbit
 import FRP.Rabbit.Handler
 import FRP.Rabbit.Signal
 
-combine :: forall a b c e .
-               (a -> b -> c) ->
-               Signal (Eff (ref :: Ref, dom :: DOM | e)) a ->
-               Signal (Eff (ref :: Ref, dom :: DOM | e)) b ->
-               Signal (Eff (ref :: Ref, dom :: DOM | e)) c
-combine f sigA sigB = do a <- sigA
-                         b <- sigB
-                         return $ f a b
-
 record :: forall a e . RefVal [[a]] -> [a] -> Eff (ref :: Ref, dom :: DOM | e) Unit
 record = \ref -> \n -> do v <- readRef ref
                           writeRef ref $ v `append` [n]
@@ -32,7 +23,7 @@ q f = do ref <- newRef []
          sigA <- createEventHandler
          sigB <- createEventHandler
 
-         let testSig = combine (\a b -> [a,b]) sigA.event sigB.event
+         let testSig = (\a b -> [a,b]) <$> sigA.event <*> sigB.event
 
          runSignal testSig (record ref)
 
