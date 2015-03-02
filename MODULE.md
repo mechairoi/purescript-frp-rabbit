@@ -2,6 +2,16 @@
 
 ## Module FRP.Rabbit
 
+### Types
+
+    type RabbitEff eff = Eff (ref :: Ref, dom :: DOM | eff)
+
+
+### Values
+
+    runRabbit :: forall a eff. Signal (RabbitEff eff) VTree -> (Node -> RabbitEff eff Unit) -> RabbitEff eff Unit
+
+
 ## Module FRP.Rabbit.Handler
 
 ### Types

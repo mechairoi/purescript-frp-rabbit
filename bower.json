@@ -28,6 +28,7 @@
     "purescript-foldable-traversable": "~0.1.6"
   },
   "devDependencies": {
-    "purescript-dom": "~0.1.1"
+    "purescript-dom": "~0.1.1",
+    "purescript-test-unit": "1.1.5"
   }
 }
