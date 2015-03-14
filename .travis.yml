@@ -5,11 +5,12 @@ install:
   - sudo add-apt-repository ppa:chris-lea/node.js -y
   - sudo apt-get update -q
   - sudo apt-get install nodejs
-  - npm install -g bower
+  - npm install -g bower pulp
 notifications:
   email:
    - ttsujikawa@gmail.com
 script:
   - npm install
   - bower install
-  - $(npm bin)/gulp test
+  - $(npm bin)/gulp example
+  - pulp test
