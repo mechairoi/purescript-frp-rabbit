@@ -1,26 +1,27 @@
-module FRP.Rabbit where
+module FRP.Rabbit
+  ( Sink(), WithRef()
+  , Event(), sinkE, newEventWithSource
+  , Reactive(), sinkR, stepperR, switcherR
+  , stateful
+  ) where
 
-import Data.Maybe
-import Data.Tuple
+import qualified FRP.Rabbit.Reactive as Reactive
+import qualified FRP.Rabbit.Event as Event
+import qualified FRP.Rabbit.Sugar as Sugar
+import qualified FRP.Rabbit.Internal.Util as Util
+
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
-import qualified VirtualDOM as V
-import VirtualDOM.VTree
-import FRP.Rabbit.Signal (Signal(..), runSignal)
-import DOM
+type WithRef eff a = Eff (ref :: Ref | eff) a
+type Sink eff a = a -> WithRef eff Unit
 
-type RabbitEff eff = Eff (dom :: DOM, ref :: Ref | eff)
+type Event = Event.Event
+sinkE = Event.sinkE
+newEventWithSource = Event.newEventWithSource
 
-runRabbit :: forall a eff. Signal (RabbitEff eff) VTree -> (Node -> RabbitEff eff Unit) -> RabbitEff eff Unit
-runRabbit vtree initCallback = do
-  ref <- newRef Nothing
-  runSignal vtree $ \newVNode -> do
-    state <- readRef ref
-    case state of
-      Nothing -> do
-        let node = V.createElement newVNode
-        initCallback node
-        writeRef ref $ Just $ Tuple node newVNode
-      Just (Tuple node prevVNode) -> do
-        V.patch (V.diff prevVNode newVNode) node
-        writeRef ref $ Just $ Tuple node newVNode
+type Reactive = Reactive.Reactive
+sinkR = Reactive.sinkR
+stepperR = Reactive.stepperR
+switcherR = Reactive.switcherR
+
+stateful = Sugar.stateful
