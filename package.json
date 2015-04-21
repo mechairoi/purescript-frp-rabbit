@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A FRP framework for PureScript",
   "dependencies": {
+    "gulp-run": "^1.6.7",
     "virtual-dom": "0.0.23",
     "vtree": "*"
   },
