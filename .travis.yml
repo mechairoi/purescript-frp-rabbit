@@ -12,5 +12,6 @@ notifications:
 script:
   - npm install
   - bower install
+  - bower prune
   - $(npm bin)/gulp example
   - pulp test
