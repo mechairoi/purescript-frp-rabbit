@@ -12,5 +12,10 @@
     "gulp": "^3.8.10",
     "gulp-purescript": "^0.1.2",
     "vinyl-source-stream": "^1.0.0"
+  },
+  "scripts": {
+    "test": "gulp test",
+    "make": "gulp make",
+    "watch": "gulp watch"
   }
 }
