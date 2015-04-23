@@ -5,6 +5,7 @@ install:
   - sudo add-apt-repository ppa:chris-lea/node.js -y
   - sudo apt-get update -q
   - sudo apt-get install nodejs
+  - npm install bower
 notifications:
   email:
    - ttsujikawa@gmail.com
