@@ -1,5 +1,5 @@
 module FRP.Rabbit.Event
-  ( Event()
+  ( Event(..)
   , newEventWithSource
   , sinkE
   , sinkEI
@@ -10,12 +10,12 @@ import Control.Monad.Eff.Ref
 import Data.Monoid
 import Data.Traversable (sequence)
 import Data.Foldable (sequence_)
+import Data.Array (reverse)
 import Control.Monad.Cont.Trans
-import Control.Monad.Trans
 
 import FRP.Rabbit.Internal.Util
 
-data Event e a= Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
+newtype Event e a= Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
 
 -- Sink is after callback
 -- SinkI returns after callback
@@ -39,8 +39,8 @@ newEventWithSource = do
           writeRef snkRef $ const $ return $ return unit
   let source = \a -> do
         snkRefs <- readRef snkRefsRef
-        afters <- sequence $ readRef >>> (>>= ($ a)) <$> snkRefs
-        sequence_ afters
+        afters <- sequence $ readRef >>> (>>= ($ a)) <$> (reverse snkRefs)
+        sequence_ $ afters
   return { event: event, source: source }
 
 instance monoidEvent :: Monoid (Event e a) where

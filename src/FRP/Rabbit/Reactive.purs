@@ -13,71 +13,72 @@ import Data.Monoid
 import Data.Maybe
 import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Event
+import Control.Monad.Cont.Trans
 
-data Reactive e a = Stepper (RefVal a) (Event e a)
-               | BindedReactive (BindedForeign (Reactive e) a)
-
-data Binded m a b = Binded (m a) (a -> (m b))
-foreign import data BindedForeign :: (* -> *) -> * -> *
-
-binded :: forall m a b. BindedForeign m b -> Binded m a b
-binded = unsafeCoerce
-bindedForeign :: forall m a b. Binded m a b -> BindedForeign m b
-bindedForeign = unsafeCoerce
+newtype Reactive e a = Reactive { value :: (RefVal a)
+                                , event :: (Event e a) }
 
 sinkR :: forall e a. Sink e a -> Reactive e a -> WithRef e (WithRef e Unit)
 sinkR snk r = do
   res <- sinkRI (\a -> return $ snk a) r
   res.after
-  return res.unreg
+  return res.unsink
 
-sinkRI :: forall e a. SinkI e a -> Reactive e a -> WithRef e { after :: (WithRef e Unit), unreg :: (WithRef e Unit)}
-sinkRI snk (Stepper ar e) = do
-  a <- readRef ar
+sinkRI :: forall e a. SinkI e a -> Reactive e a -> WithRef e { after :: (WithRef e Unit), unsink :: (WithRef e Unit)}
+sinkRI snk (Reactive react) = do
+  a <- readRef react.value
+  unsnk <- sinkEI (\a -> do
+                      writeRef react.value a
+                      snk a) react.event
   after <- snk a
-  unreg <- sinkEI (\a -> do writeRef ar a
-                            snk a) e
-  return {
-    after: after,
-    unreg: unreg
-  }
-
-sinkRI snk (BindedReactive r) = do sink snk $ binded r
-  where
-    sink :: forall e a b. SinkI e b -> Binded (Reactive e) a b -> WithRef e { after :: (WithRef e Unit), unreg :: (WithRef e Unit) }
-    sink snk (Binded ma k) = do
-      unregRef <- newRef Nothing
-      res <- sinkRI (\a -> do
-        unregister unregRef
-        new <- sinkRI (\a -> snk a) $ k a
-        writeRef unregRef $ Just new.unreg
-        return $ new.after) ma
-      return $ {
-        after: res.after,
-        unreg: do
-          unregister unregRef
-          res.unreg
-      }
-      where unregister ref = readRef ref >>= maybe (return unit) id
-
-foreign import consoleLog "function consoleLog(x) { console.log(JSON.stringify(x)); return x }" :: forall a. a -> a
+  return { after: after
+         , unsink: unsnk }
 
 instance functorReactive :: Functor (Reactive e) where
   (<$>) f ma = ma >>= (pure <<< f)
 
 instance applicativeReactive :: Applicative (Reactive e) where
-  pure a = Stepper (unsafePerformEff $ newRef a) mempty
+  pure a = Reactive { value: unsafePerformEff $ newRef a
+                    , event: (mempty :: Event e _) }
 
 instance applyReactive :: Apply (Reactive e) where
   (<*>) uf ua = uf >>= (\f -> ua >>= (pure <<< f))
 
+foreign import consoleLog "function consoleLog(x) { console.log(x); return x }" :: forall a. a -> a
+
 instance bindReactive :: Bind (Reactive e) where
-  (>>=) ma k = BindedReactive $ bindedForeign $ Binded ma k
+  (>>=) ra k = Reactive
+    { value: unsafePerformEff $ do
+                  a <- sampleR ra
+                  b <- sampleR $ k a
+                  newRef b
+    , event: Event $ ContT $ \snk -> do
+                  unsnkRef <- newRef Nothing
+                  res <- sinkRI (\a' -> do
+                    unsink unsnkRef
+                    new <- sinkRI (\b' -> snk b') $ k a'
+                    writeRef unsnkRef $ Just new.unsink
+                    return new.after) ra
+                  return $ do
+                    unsink unsnkRef
+                    res.unsink }
+
+unsink ref = readRef ref >>= maybe (return unit) id
+
+sampleR :: forall e a. Reactive e a -> WithRef e a
+sampleR (Reactive ra) = readRef ra.value
 
 instance monadReactive :: Monad (Reactive e)
 
-stepperR :: forall a eff. a -> Event eff a -> Reactive eff a
-stepperR a e = Stepper (unsafePerformEff $ newRef a) e
+stepperR :: forall a e. a -> Event e a -> Reactive e a
+stepperR a e = Reactive
+  { value: (unsafePerformEff $ do
+               value <- newRef a
+               sinkEI (\a' -> do -- unsink or leak?
+                          writeRef value a'
+                          return $ return unit) e
+               return value)
+  , event: e }
 
-switcherR :: forall a eff. Reactive eff a -> Event eff (Reactive eff a) -> Reactive eff a
+switcherR :: forall a e. Reactive e a -> Event e (Reactive e a) -> Reactive e a
 switcherR r er = join (r `stepperR` er)
