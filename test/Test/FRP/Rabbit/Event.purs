@@ -47,6 +47,16 @@ eventSpec = do
       a1.read >>= shouldEqual 2
       a2.read >>= shouldEqual 4
 
+    it "sink -> source -> unsink -> source" do
+      a <- newAggregator
+      es <- newEventWithSource
+      unsink <- sinkE a.add es.event
+      es.source 2
+      a.read >>= shouldEqual 2
+      unsink
+      es.source 3
+      a.read >>= shouldEqual 2
+
     it "functorEvent" do
       es <- newEventWithSource
       a <- newAggregator
