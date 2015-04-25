@@ -36,14 +36,8 @@ type Reactive = Reactive.Reactive
 #### `Event`
 
 ``` purescript
-data Event e a
-```
-
-
-#### `newEventWithSource`
-
-``` purescript
-newEventWithSource :: forall e a. WithRef e { source :: Sink e a, event :: Event e a }
+newtype Event e a
+  = Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
 ```
 
 
@@ -53,11 +47,16 @@ newEventWithSource :: forall e a. WithRef e { source :: Sink e a, event :: Event
 sinkE :: forall e a. Sink e a -> Event e a -> WithRef e (WithRef e Unit)
 ```
 
-
 #### `sinkEI`
 
 ``` purescript
 sinkEI :: forall e a. SinkI e a -> Event e a -> WithRef e (WithRef e Unit)
+```
+
+#### `newEventWithSource`
+
+``` purescript
+newEventWithSource :: forall e a. WithRef e { source :: Sink e a, event :: Event e a }
 ```
 
 
@@ -88,7 +87,7 @@ instance semigroupEvent :: Semigroup (Event e a)
 #### `Reactive`
 
 ``` purescript
-data Reactive e a
+newtype Reactive e a
 ```
 
 
@@ -102,7 +101,7 @@ sinkR :: forall e a. Sink e a -> Reactive e a -> WithRef e (WithRef e Unit)
 #### `sinkRI`
 
 ``` purescript
-sinkRI :: forall e a. SinkI e a -> Reactive e a -> WithRef e { unreg :: WithRef e Unit, after :: WithRef e Unit }
+sinkRI :: forall e a. SinkI e a -> Reactive e a -> WithRef e { unsink :: WithRef e Unit, after :: WithRef e Unit }
 ```
 
 
@@ -144,14 +143,14 @@ instance monadReactive :: Monad (Reactive e)
 #### `stepperR`
 
 ``` purescript
-stepperR :: forall a eff. a -> Event eff a -> Reactive eff a
+stepperR :: forall a e. a -> Event e a -> Reactive e a
 ```
 
 
 #### `switcherR`
 
 ``` purescript
-switcherR :: forall a eff. Reactive eff a -> Event eff (Reactive eff a) -> Reactive eff a
+switcherR :: forall a e. Reactive e a -> Event e (Reactive e a) -> Reactive e a
 ```
 
 
