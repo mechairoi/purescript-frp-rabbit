@@ -23,6 +23,16 @@ reactiveSpec =
       es.source 2
       a.read >>= shouldEqual [1, 2]
 
+    it "source -> sinkR -> source" do
+      es <- newEventWithSource
+      a <- newAggregator
+      let r = 1 `stepperR` es.event
+      es.source 2
+      sinkR a.record r
+      a.read >>= shouldEqual [2]
+      es.source 3
+      a.read >>= shouldEqual [2, 3]
+
     it "functorReactive" do
       es <- newEventWithSource
       a <- newAggregator
