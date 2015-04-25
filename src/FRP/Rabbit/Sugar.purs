@@ -8,7 +8,6 @@ import FRP.Rabbit.Reactive
 import FRP.Rabbit.Event
 import FRP.Rabbit.Internal.Util
 
--- XXX statefulE ?
 stateful :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
             WithRef e (Reactive e b)

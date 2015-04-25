@@ -44,8 +44,6 @@ instance applicativeReactive :: Applicative (Reactive e) where
 instance applyReactive :: Apply (Reactive e) where
   (<*>) uf ua = uf >>= (\f -> ua >>= (pure <<< f))
 
-foreign import consoleLog "function consoleLog(x) { console.log(x); return x }" :: forall a. a -> a
-
 instance bindReactive :: Bind (Reactive e) where
   (>>=) ra k = Reactive
     { value: unsafePerformEff $ do
@@ -62,8 +60,7 @@ instance bindReactive :: Bind (Reactive e) where
                   return $ do
                     unsink unsnkRef
                     res.unsink }
-
-unsink ref = readRef ref >>= maybe (return unit) id
+    where unsink ref = readRef ref >>= maybe (return unit) id
 
 sampleR :: forall e a. Reactive e a -> WithRef e a
 sampleR (Reactive ra) = readRef ra.value

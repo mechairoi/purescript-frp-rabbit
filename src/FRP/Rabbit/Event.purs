@@ -15,7 +15,7 @@ import Control.Monad.Cont.Trans
 
 import FRP.Rabbit.Internal.Util
 
-newtype Event e a= Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
+newtype Event e a = Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
 
 -- Sink is after callback
 -- SinkI returns after callback
