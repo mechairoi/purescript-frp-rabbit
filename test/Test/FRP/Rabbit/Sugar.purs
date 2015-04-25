@@ -18,10 +18,10 @@ sugarSpec =
     it "stateful" do
       es <- newEventWithSource
       a <- newAggregator
-      r <- stateful (\a b -> a + b) 10 es.event
-      sinkR a.add r
-      a.read >>= shouldEqual 10
+      r <- stateful (\a b -> a : b) [] es.event
+      sinkR a.record r
+      a.read >>= shouldEqual [[]]
       es.source 2
-      a.read >>= shouldEqual (10 + (10 + 2))
+      a.read >>= shouldEqual [[], [2]]
       es.source 3
-      a.read >>= shouldEqual (10 + (10 + 2) + (10 + 2 + 3))
+      a.read >>= shouldEqual [[], [2], [3, 2]]

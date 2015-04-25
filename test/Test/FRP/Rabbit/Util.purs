@@ -3,10 +3,11 @@ module Test.FRP.Rabbit.Util
   ) where
 
 import Control.Monad.Eff.Ref
+import Data.Array (snoc)
 
 newAggregator = do
-  sumRef <- newRef 0
+  sumRef <- newRef []
   return {
-    add: \x -> modifyRef sumRef ((+) x),
+    record: \x -> modifyRef sumRef (flip snoc x),
     read: readRef sumRef
   }

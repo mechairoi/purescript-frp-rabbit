@@ -16,76 +16,76 @@ eventSpec = do
     it "sink -> source" do
       a <- newAggregator
       es <- newEventWithSource
-      sinkE a.add es.event
+      sinkE a.record es.event
       es.source 2
-      a.read >>= shouldEqual 2
+      a.read >>= shouldEqual [2]
 
     it "sink -> source -> source" do
       a <- newAggregator
       es <- newEventWithSource
-      sinkE a.add es.event
+      sinkE a.record es.event
       es.source 2
-      a.read >>= shouldEqual 2
+      a.read >>= shouldEqual [2]
 
       es.source 3
-      a.read >>= shouldEqual 5
+      a.read >>= shouldEqual [2, 3]
 
     it "source -> sink" do
       es <- newEventWithSource
       a <- newAggregator
       es.source 2
-      sinkE a.add es.event
-      a.read >>= shouldEqual 0
+      sinkE a.record es.event
+      a.read >>= shouldEqual []
 
     it "sink -> sink -> source" do
       es <- newEventWithSource
       a1 <- newAggregator
       a2 <- newAggregator
-      sinkE a1.add es.event
-      sinkE ((2 *) >>> a2.add) es.event
+      sinkE a1.record es.event
+      sinkE ((2 *) >>> a2.record) es.event
       es.source 2
-      a1.read >>= shouldEqual 2
-      a2.read >>= shouldEqual 4
+      a1.read >>= shouldEqual [2]
+      a2.read >>= shouldEqual [4]
 
     it "sink -> source -> unsink -> source" do
       a <- newAggregator
       es <- newEventWithSource
-      unsink <- sinkE a.add es.event
+      unsink <- sinkE a.record es.event
       es.source 2
-      a.read >>= shouldEqual 2
+      a.read >>= shouldEqual [2]
       unsink
       es.source 3
-      a.read >>= shouldEqual 2
+      a.read >>= shouldEqual [2]
 
     it "functorEvent" do
       es <- newEventWithSource
       a <- newAggregator
-      sinkE a.add $ (2 *) <$> es.event
+      sinkE a.record $ (2 *) <$> es.event
 
       es.source 2
-      a.read >>= shouldEqual 4
+      a.read >>= shouldEqual [4]
 
     it "semigroupEvent" do
       esa <- newEventWithSource
       esb <- newEventWithSource
       a <- newAggregator
-      sinkE a.add $ esa.event <> esb.event
+      sinkE a.record $ esa.event <> esb.event
 
       esa.source 2
-      a.read >>= shouldEqual 2
+      a.read >>= shouldEqual [2]
 
       esb.source 3
-      a.read >>= shouldEqual (2 + 3)
+      a.read >>= shouldEqual [2, 3]
 
       esa.source 4
-      a.read >>= shouldEqual (2 + 3 + 4)
+      a.read >>= shouldEqual [2, 3, 4]
 
     it "semigroupEvent e <> e" do
       es <- newEventWithSource
       a <- newAggregator
-      sinkE a.add $ es.event <> es.event
+      sinkE a.record $ es.event <> es.event
       es.source 2
-      a.read >>= shouldEqual 4
+      a.read >>= shouldEqual [2, 2]
 
   describe "event loop" do
     pending "make infinite loop."
