@@ -3,16 +3,14 @@ module Example.FRP.Rabbit.Signal where
 import Data.Maybe
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
-import Control.Monad.Trans
 import DOM
 import VirtualDOM.VTree.Typed
-import FRP.Rabbit (runRabbit)
-import FRP.Rabbit.Handler (createEventHandler)
-import FRP.Rabbit.Signal (Signal(..), stateful)
+import FRP.Rabbit.VirtualDOM (runReactiveVTree)
+import FRP.Rabbit
 
 main = windowOnLoad $ do
-  runRabbit rootVNode documentBodyAppendChild
-  runRabbit rootVNode documentBodyAppendChild
+  rootVNode >>= runReactiveVTree >>= documentBodyAppendChild
+  rootVNode >>= runReactiveVTree >>= documentBodyAppendChild
 
 foreign import windowOnLoad """
   function windowOnLoad(callback) {
@@ -40,15 +38,16 @@ initialState = { counter: 0 }
 increment :: State -> State
 increment state = state { counter = state.counter + 1 }
 
-rootVNode :: (Signal (Eff (dom :: DOM, ref :: Ref)) VTree)
+rootVNode :: Eff _ (Reactive _ VTree)
 rootVNode = do
-  eh <- lift $ createEventHandler
-  let state = stateful (\e state -> increment state) initialState eh.event
-  s <- (return initialState) <> state
-  return $ vnode "div" []
-    [ vnode "p" [] [ vtext $ show s.counter ] Nothing Nothing
-    , vnode "button"
-        [ handler "onclick" eh.handler ]
-        [ vtext "++" ]
-        Nothing Nothing
-    ] Nothing Nothing
+  es <- newEventWithSource
+  state <- stateful (\e state -> increment state) initialState es.event
+  return $ do
+    s <- state
+    return $ vnode "div" []
+      [ vnode "p" [] [ vtext $ show s.counter ] Nothing Nothing
+      , vnode "button"
+          [ handler "onclick" es.source ]
+          [ vtext "++" ]
+          Nothing Nothing
+      ] Nothing Nothing

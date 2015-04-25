@@ -1,6 +1,7 @@
 'use strict';
 
 var gulp        = require('gulp')
+  , run         = require('gulp-run')
   , purescript  = require('gulp-purescript')
   , source      = require('vinyl-source-stream')
   , browserify  = require('browserify')
@@ -13,7 +14,7 @@ var paths = {
   bowerSrc: 'bower_components/purescript-*/src/**/*.purs',
   dest: 'output',
   example: 'examples/*.purs',
-  test: 'test/*.purs'
+  test: 'test/**/*.purs'
 };
 
 gulp.task('make', function() {
@@ -26,6 +27,13 @@ gulp.task('test-make', function() {
   return gulp.src([paths.src, paths.test].concat(paths.bowerSrc))
     .pipe(purescript.pscMake({}))
     .pipe(gulp.dest(paths.dest));
+});
+
+gulp.task('test', ['test-make'], function() {
+  var env = {}
+  for (var e in process.env) env[e] = process.env[e];
+  env.NODE_PATH = 'output';
+  run('node -e "require(\'Test.Main\').main();"', { 'env': env }).exec()
 });
 
 gulp.task('example-make', function() {
