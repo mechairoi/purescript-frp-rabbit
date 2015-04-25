@@ -1,4 +1,4 @@
-module FRP.Rabbit.Reactive
+module FRP.Rabbit.Internal.Reactive
   ( sinkR
   , sinkRI
   , Reactive()
@@ -12,7 +12,7 @@ import Control.Bind (join, ifM)
 import Data.Monoid
 import Data.Maybe
 import FRP.Rabbit.Internal.Util
-import FRP.Rabbit.Event
+import FRP.Rabbit.Internal.Event
 import Control.Monad.Cont.Trans
 
 newtype Reactive e a = Reactive { value :: (RefVal a)

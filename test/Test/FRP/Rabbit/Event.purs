@@ -4,7 +4,7 @@ module Test.FRP.Rabbit.Event
 
 import Debug.Trace
 
-import FRP.Rabbit.Event
+import FRP.Rabbit.Internal.Event
 
 import Test.Spec
 import Test.Spec.Assertions

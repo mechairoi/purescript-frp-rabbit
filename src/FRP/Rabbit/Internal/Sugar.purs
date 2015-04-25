@@ -1,11 +1,11 @@
-module FRP.Rabbit.Sugar
+module FRP.Rabbit.Internal.Sugar
   ( stateful
   ) where
 
 import Control.Monad.Eff.Ref
 
-import FRP.Rabbit.Reactive
-import FRP.Rabbit.Event
+import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Util
 
 stateful :: forall e a b. (a -> b -> b) -> b ->

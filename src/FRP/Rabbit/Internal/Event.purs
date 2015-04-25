@@ -1,4 +1,4 @@
-module FRP.Rabbit.Event
+module FRP.Rabbit.Internal.Event
   ( Event(..)
   , newEventWithSource
   , sinkE

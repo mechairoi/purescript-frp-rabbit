@@ -5,9 +5,9 @@ module FRP.Rabbit
   , stateful
   ) where
 
-import qualified FRP.Rabbit.Reactive as Reactive
-import qualified FRP.Rabbit.Event as Event
-import qualified FRP.Rabbit.Sugar as Sugar
+import qualified FRP.Rabbit.Internal.Reactive as Reactive
+import qualified FRP.Rabbit.Internal.Event as Event
+import qualified FRP.Rabbit.Internal.Sugar as Sugar
 import qualified FRP.Rabbit.Internal.Util as Util
 
 import Control.Monad.Eff

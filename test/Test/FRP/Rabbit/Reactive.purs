@@ -4,8 +4,8 @@ module Test.FRP.Rabbit.Reactive
 
 import Debug.Trace
 
-import FRP.Rabbit.Reactive
-import FRP.Rabbit.Event
+import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Event
 
 import Test.Spec
 import Test.Spec.Assertions

@@ -7,7 +7,7 @@ import Control.Monad.Eff.Ref
 import qualified VirtualDOM as V
 import VirtualDOM.VTree
 import DOM
-import FRP.Rabbit.Reactive
+import FRP.Rabbit.Internal.Reactive
 import FRP.Rabbit.Internal.Util
 
 runReactiveVTree :: forall e. Reactive (dom :: DOM | e) VTree

@@ -4,9 +4,9 @@ module Test.FRP.Rabbit.Sugar
 
 import Debug.Trace
 
-import FRP.Rabbit.Reactive
-import FRP.Rabbit.Event
-import FRP.Rabbit.Sugar (stateful)
+import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Event
+import FRP.Rabbit.Internal.Sugar (stateful)
 
 import Test.Spec
 import Test.Spec.Assertions
