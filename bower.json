@@ -18,8 +18,8 @@
     "tests"
   ],
   "dependencies": {
-    "purescript-virtual-dom": "~0.2.0",
-    "purescript-virtual-dom-typed": "~0.1.1",
+    "purescript-virtual-dom": "~0.3.0",
+    "purescript-virtual-dom-typed": "~0.1.2",
     "purescript-control": "~0.2.1",
     "purescript-foldable-traversable": "~0.3.1",
     "purescript-maybe": "~0.2.2",
