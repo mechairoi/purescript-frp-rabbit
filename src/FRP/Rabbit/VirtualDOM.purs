@@ -1,5 +1,5 @@
 module FRP.Rabbit.VirtualDOM
-  ( runReactiveVTree
+  ( runBehaviorVTree
   ) where
 
 import Data.Maybe
@@ -7,12 +7,12 @@ import Control.Monad.Eff.Ref
 import qualified VirtualDOM as V
 import VirtualDOM.VTree
 import DOM
-import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Util
 
-runReactiveVTree :: forall e. Reactive (dom :: DOM | e) VTree
+runBehaviorVTree :: forall e. Behavior (dom :: DOM | e) VTree
                            -> WithRef (dom :: DOM | e) DOM.Node
-runReactiveVTree rvtree = do
+runBehaviorVTree rvtree = do
   ref <- newRef Nothing
   sinkR (\vnode' -> do
     state <- readRef ref

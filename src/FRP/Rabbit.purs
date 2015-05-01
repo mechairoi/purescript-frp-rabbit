@@ -1,11 +1,11 @@
 module FRP.Rabbit
   ( Sink(), WithRef()
   , Event(), sinkE, newEventWithSource
-  , Reactive(), sinkR, stepperR, switcherR
+  , Behavior(), sinkR, stepperR, switcherR
   , stateful
   ) where
 
-import qualified FRP.Rabbit.Internal.Reactive as Reactive
+import qualified FRP.Rabbit.Internal.Behavior as Behavior
 import qualified FRP.Rabbit.Internal.Event as Event
 import qualified FRP.Rabbit.Internal.Sugar as Sugar
 import qualified FRP.Rabbit.Internal.Util as Util
@@ -36,35 +36,35 @@ newEventWithSource = Event.newEventWithSource
 -- |
 -- | It's like `.addEventListener()` or subscribe an observable.
 -- | `sinkE` can only subscribe future values to prevent memory leak.
--- | Please use `sinkR` to subscribe an `Reactive`.
+-- | Please use `sinkR` to subscribe an `Behavior`.
 sinkE :: forall e a. Sink e a -> Event e a -> WithRef e (WithRef e Unit)
 sinkE = Event.sinkE
 
 
--- | The `Reactive eff a` type represents streams of timed values,
+-- | The `Behavior eff a` type represents streams of timed values,
 -- | but semantically it is continuous time function whose value is the last timed value at the thme.
 -- | It's a primitive of `FRP.Rabbit`.
 -- |
--- | `Reactive` has current value and an `Event` represents future values.
+-- | `Behavior` has current value and an `Event` represents future values.
 -- | These timed values are inhabitants of _a_.
 -- | `Event` is an instance of `Monad`.
-type Reactive e a = Reactive.Reactive e a
+type Behavior e a = Behavior.Behavior e a
 
--- | The `sinkR` function registers a callback function for a `Reactive`.
+-- | The `sinkR` function registers a callback function for a `Behavior`.
 -- |
 -- | It's like `.addEventListener()` or subscribe an observable.
 -- | `sinkR` can only subscribe current and future values to prevent memory leak.
 -- | Please use `sinkE` to subscribe an `Event`.
-sinkR :: forall e a. Sink e a -> Reactive e a -> WithRef e (WithRef e Unit)
-sinkR = Reactive.sinkR
+sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
+sinkR = Behavior.sinkR
 
-stepperR :: forall a e. a -> Event e a -> Reactive e a
-stepperR = Reactive.stepperR
+stepperR :: forall a e. a -> Event e a -> Behavior e a
+stepperR = Behavior.stepperR
 
-switcherR :: forall a e. Reactive e a -> Event e (Reactive e a) -> Reactive e a
-switcherR = Reactive.switcherR
+switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
+switcherR = Behavior.switcherR
 
 stateful :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
-            WithRef e (Reactive e b)
+            WithRef e (Behavior e b)
 stateful = Sugar.stateful

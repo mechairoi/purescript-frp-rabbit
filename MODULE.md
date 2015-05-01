@@ -51,29 +51,29 @@ The `sinkE` function registers a callback function for an `Event`.
 
 It's like `.addEventListener()` or subscribe an observable.
 `sinkE` can only subscribe future values to prevent memory leak.
-Please use `sinkR` to subscribe an `Reactive`.
+Please use `sinkR` to subscribe an `Behavior`.
 
-#### `Reactive`
+#### `Behavior`
 
 ``` purescript
-type Reactive e a = Reactive.Reactive e a
+type Behavior e a = Behavior.Behavior e a
 ```
 
-The `Reactive eff a` type represents streams of timed values,
+The `Behavior eff a` type represents streams of timed values,
 but semantically it is continuous time function whose value is the last timed value at the thme.
 It's a primitive of `FRP.Rabbit`.
 
-`Reactive` has current value and an `Event` represents future values.
+`Behavior` has current value and an `Event` represents future values.
 These timed values are inhabitants of _a_.
 `Event` is an instance of `Monad`.
 
 #### `sinkR`
 
 ``` purescript
-sinkR :: forall e a. Sink e a -> Reactive e a -> WithRef e (WithRef e Unit)
+sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
 ```
 
-The `sinkR` function registers a callback function for a `Reactive`.
+The `sinkR` function registers a callback function for a `Behavior`.
 
 It's like `.addEventListener()` or subscribe an observable.
 `sinkR` can only subscribe current and future values to prevent memory leak.
@@ -82,31 +82,104 @@ Please use `sinkE` to subscribe an `Event`.
 #### `stepperR`
 
 ``` purescript
-stepperR :: forall a e. a -> Event e a -> Reactive e a
+stepperR :: forall a e. a -> Event e a -> Behavior e a
 ```
 
 
 #### `switcherR`
 
 ``` purescript
-switcherR :: forall a e. Reactive e a -> Event e (Reactive e a) -> Reactive e a
+switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 ```
 
 
 #### `stateful`
 
 ``` purescript
-stateful :: forall e a b. (a -> b -> b) -> b -> Event e a -> WithRef e (Reactive e b)
+stateful :: forall e a b. (a -> b -> b) -> b -> Event e a -> WithRef e (Behavior e b)
 ```
 
 
 
 ## Module FRP.Rabbit.VirtualDOM
 
-#### `runReactiveVTree`
+#### `runBehaviorVTree`
 
 ``` purescript
-runReactiveVTree :: forall e. Reactive (dom :: DOM | e) VTree -> WithRef (dom :: DOM | e) DOM.Node
+runBehaviorVTree :: forall e. Behavior (dom :: DOM | e) VTree -> WithRef (dom :: DOM | e) DOM.Node
+```
+
+
+
+## Module FRP.Rabbit.Internal.Behavior
+
+#### `Behavior`
+
+``` purescript
+newtype Behavior e a
+```
+
+
+#### `sinkR`
+
+``` purescript
+sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
+```
+
+
+#### `sinkRI`
+
+``` purescript
+sinkRI :: forall e a. SinkI e a -> Behavior e a -> WithRef e { unsink :: WithRef e Unit, after :: WithRef e Unit }
+```
+
+
+#### `functorBehavior`
+
+``` purescript
+instance functorBehavior :: Functor (Behavior e)
+```
+
+
+#### `applicativeBehavior`
+
+``` purescript
+instance applicativeBehavior :: Applicative (Behavior e)
+```
+
+
+#### `applyBehavior`
+
+``` purescript
+instance applyBehavior :: Apply (Behavior e)
+```
+
+
+#### `bindBehavior`
+
+``` purescript
+instance bindBehavior :: Bind (Behavior e)
+```
+
+
+#### `monadBehavior`
+
+``` purescript
+instance monadBehavior :: Monad (Behavior e)
+```
+
+
+#### `stepperR`
+
+``` purescript
+stepperR :: forall a e. a -> Event e a -> Behavior e a
+```
+
+
+#### `switcherR`
+
+``` purescript
+switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 ```
 
 
@@ -162,85 +235,12 @@ instance semigroupEvent :: Semigroup (Event e a)
 
 
 
-## Module FRP.Rabbit.Internal.Reactive
-
-#### `Reactive`
-
-``` purescript
-newtype Reactive e a
-```
-
-
-#### `sinkR`
-
-``` purescript
-sinkR :: forall e a. Sink e a -> Reactive e a -> WithRef e (WithRef e Unit)
-```
-
-
-#### `sinkRI`
-
-``` purescript
-sinkRI :: forall e a. SinkI e a -> Reactive e a -> WithRef e { unsink :: WithRef e Unit, after :: WithRef e Unit }
-```
-
-
-#### `functorReactive`
-
-``` purescript
-instance functorReactive :: Functor (Reactive e)
-```
-
-
-#### `applicativeReactive`
-
-``` purescript
-instance applicativeReactive :: Applicative (Reactive e)
-```
-
-
-#### `applyReactive`
-
-``` purescript
-instance applyReactive :: Apply (Reactive e)
-```
-
-
-#### `bindReactive`
-
-``` purescript
-instance bindReactive :: Bind (Reactive e)
-```
-
-
-#### `monadReactive`
-
-``` purescript
-instance monadReactive :: Monad (Reactive e)
-```
-
-
-#### `stepperR`
-
-``` purescript
-stepperR :: forall a e. a -> Event e a -> Reactive e a
-```
-
-
-#### `switcherR`
-
-``` purescript
-switcherR :: forall a e. Reactive e a -> Event e (Reactive e a) -> Reactive e a
-```
-
-
-
 ## Module FRP.Rabbit.Internal.Sugar
 
 #### `stateful`
 
 ``` purescript
-stateful :: forall e a b. (a -> b -> b) -> b -> Event e a -> WithRef e (Reactive e b)
+stateful :: forall e a b. (a -> b -> b) -> b -> Event e a -> WithRef e (Behavior e b)
 ```
 
 

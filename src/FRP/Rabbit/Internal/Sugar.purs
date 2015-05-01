@@ -4,13 +4,13 @@ module FRP.Rabbit.Internal.Sugar
 
 import Control.Monad.Eff.Ref
 
-import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Util
 
 stateful :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
-            WithRef e (Reactive e b)
+            WithRef e (Behavior e b)
 stateful f b0 ea = do
   es <- newEventWithSource
   let rb = b0 `stepperR` es.event

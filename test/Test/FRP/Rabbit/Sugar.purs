@@ -4,7 +4,7 @@ module Test.FRP.Rabbit.Sugar
 
 import Debug.Trace
 
-import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Sugar (stateful)
 

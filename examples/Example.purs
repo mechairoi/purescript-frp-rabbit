@@ -5,12 +5,12 @@ import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import DOM
 import VirtualDOM.VTree.Typed
-import FRP.Rabbit.VirtualDOM (runReactiveVTree)
+import FRP.Rabbit.VirtualDOM (runBehaviorVTree)
 import FRP.Rabbit
 
 main = windowOnLoad $ do
-  rootVNode >>= runReactiveVTree >>= documentBodyAppendChild
-  rootVNode >>= runReactiveVTree >>= documentBodyAppendChild
+  rootVNode >>= runBehaviorVTree >>= documentBodyAppendChild
+  rootVNode >>= runBehaviorVTree >>= documentBodyAppendChild
 
 foreign import windowOnLoad """
   function windowOnLoad(callback) {
@@ -38,7 +38,7 @@ initialState = { counter: 0 }
 increment :: State -> State
 increment state = state { counter = state.counter + 1 }
 
-rootVNode :: Eff _ (Reactive _ VTree)
+rootVNode :: Eff _ (Behavior _ VTree)
 rootVNode = do
   es <- newEventWithSource
   state <- stateful (\e state -> increment state) initialState es.event

@@ -1,7 +1,7 @@
-module FRP.Rabbit.Internal.Reactive
+module FRP.Rabbit.Internal.Behavior
   ( sinkR
   , sinkRI
-  , Reactive()
+  , Behavior()
   , stepperR
   , switcherR
   ) where
@@ -15,17 +15,17 @@ import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Internal.Event
 import Control.Monad.Cont.Trans
 
-newtype Reactive e a = Reactive { value :: (RefVal a)
+newtype Behavior e a = Behavior { value :: (RefVal a)
                                 , event :: (Event e a) }
 
-sinkR :: forall e a. Sink e a -> Reactive e a -> WithRef e (WithRef e Unit)
+sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
 sinkR snk r = do
   res <- sinkRI (\a -> return $ snk a) r
   res.after
   return res.unsink
 
-sinkRI :: forall e a. SinkI e a -> Reactive e a -> WithRef e { after :: (WithRef e Unit), unsink :: (WithRef e Unit)}
-sinkRI snk (Reactive react) = do
+sinkRI :: forall e a. SinkI e a -> Behavior e a -> WithRef e { after :: (WithRef e Unit), unsink :: (WithRef e Unit)}
+sinkRI snk (Behavior react) = do
   a <- readRef react.value
   unsnk <- sinkEI (\a -> do
                       writeRef react.value a
@@ -34,18 +34,18 @@ sinkRI snk (Reactive react) = do
   return { after: after
          , unsink: unsnk }
 
-instance functorReactive :: Functor (Reactive e) where
+instance functorBehavior :: Functor (Behavior e) where
   (<$>) f ma = ma >>= (pure <<< f)
 
-instance applicativeReactive :: Applicative (Reactive e) where
-  pure a = Reactive { value: unsafePerformEff $ newRef a
+instance applicativeBehavior :: Applicative (Behavior e) where
+  pure a = Behavior { value: unsafePerformEff $ newRef a
                     , event: (mempty :: Event e _) }
 
-instance applyReactive :: Apply (Reactive e) where
+instance applyBehavior :: Apply (Behavior e) where
   (<*>) uf ua = uf >>= (\f -> ua >>= (pure <<< f))
 
-instance bindReactive :: Bind (Reactive e) where
-  (>>=) ra k = Reactive
+instance bindBehavior :: Bind (Behavior e) where
+  (>>=) ra k = Behavior
     { value: unsafePerformEff $ do
                   a <- sampleR ra
                   b <- sampleR $ k a
@@ -62,13 +62,13 @@ instance bindReactive :: Bind (Reactive e) where
                     res.unsink }
     where unsink ref = readRef ref >>= maybe (return unit) id
 
-sampleR :: forall e a. Reactive e a -> WithRef e a
-sampleR (Reactive ra) = readRef ra.value
+sampleR :: forall e a. Behavior e a -> WithRef e a
+sampleR (Behavior ra) = readRef ra.value
 
-instance monadReactive :: Monad (Reactive e)
+instance monadBehavior :: Monad (Behavior e)
 
-stepperR :: forall a e. a -> Event e a -> Reactive e a
-stepperR a e = Reactive
+stepperR :: forall a e. a -> Event e a -> Behavior e a
+stepperR a e = Behavior
   { value: (unsafePerformEff $ do
                value <- newRef a
                sinkEI (\a' -> do -- unsink or leak?
@@ -77,5 +77,5 @@ stepperR a e = Reactive
                return value)
   , event: e }
 
-switcherR :: forall a e. Reactive e a -> Event e (Reactive e a) -> Reactive e a
+switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 switcherR r er = join (r `stepperR` er)

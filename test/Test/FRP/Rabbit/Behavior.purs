@@ -1,10 +1,10 @@
-module Test.FRP.Rabbit.Reactive
-  ( reactiveSpec
+module Test.FRP.Rabbit.Behavior
+  ( behaviorSpec
   ) where
 
 import Debug.Trace
 
-import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Event
 
 import Test.Spec
@@ -12,8 +12,8 @@ import Test.Spec.Assertions
 
 import Test.FRP.Rabbit.Util
 
-reactiveSpec =
-  describe "reactive" do
+behaviorSpec =
+  describe "behavior" do
     it "sinkR -> source" do
       es <- newEventWithSource
       a <- newAggregator
@@ -33,7 +33,7 @@ reactiveSpec =
       es.source 3
       a.read >>= shouldEqual [2, 3]
 
-    it "functorReactive" do
+    it "functorBehavior" do
       es <- newEventWithSource
       a <- newAggregator
       let r = 1 `stepperR` es.event
@@ -42,7 +42,7 @@ reactiveSpec =
       es.source 2
       a.read >>= shouldEqual [3, 6]
 
-    it "applicativeReactive" do
+    it "applicativeBehavior" do
       esa <- newEventWithSource
       esf <- newEventWithSource
       a <- newAggregator
@@ -59,7 +59,7 @@ reactiveSpec =
       esf.source (: [4])
       a.read >>= shouldEqual [[1, 2], [2, 2], [3, 2], [3, 3], [3, 4]]
 
-    it "bindReactive" do
+    it "bindBehavior" do
       esx <- newEventWithSource
       esy <- newEventWithSource
       a <- newAggregator
