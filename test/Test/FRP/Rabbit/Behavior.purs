@@ -98,3 +98,15 @@ behaviorSpec =
 
       sync $ es.push 2
       a.read >>= shouldEqual [[1, 1], [2, 2]]
+
+    it "sync" do
+      es <- sync $ newEvent
+      a <- newAggregator
+      r <- sync $ 1 `hold` es.event
+      sync $ listenB r a.record
+      a.read >>= shouldEqual [1]
+
+      sync $ do
+        es.push 2
+        es.push 3
+      a.read >>= shouldEqual [1, 3]
