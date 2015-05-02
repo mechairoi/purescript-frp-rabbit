@@ -2,12 +2,17 @@ module FRP.Rabbit.Internal.Reactive
   ( Reactive(..)
   , ReactiveR(..)
   , sync
+  , liftR
+  , sequenceR
+  , mapAfter
   ) where
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref (Ref())
-import Control.Monad.Eff.Class
+import Data.Traversable (sequence)
+import Data.Foldable (sequence_)
 
+-- XXX WriterT?
 newtype Reactive e a = Reactive (Eff e { r :: a, after :: Eff e Unit } )
 
 type ReactiveR e a = Reactive (ref :: Ref | e) a
@@ -18,9 +23,14 @@ unReactive (Reactive r) = r
 
 sync :: forall e a. Reactive e a -> Eff e a
 sync (Reactive eff) = do
-  r <- eff
-  r.after
-  pure r.r
+  x <- eff
+  x.after
+  pure x.r
+
+mapAfter :: forall e a. (Eff e Unit -> Eff e Unit) -> Reactive e a -> Reactive e a
+mapAfter f r = Reactive $ do
+  o <- unReactive r
+  pure $ o { after = f o.after }
 
 instance functorReactive :: Functor (Reactive e) where
   (<$>) g (Reactive fa) = Reactive $ do
@@ -32,25 +42,29 @@ instance applicativeReactive :: Applicative (Reactive e) where
 
 instance applyReactive :: Apply (Reactive e) where
   (<*>) (Reactive uf) (Reactive ua) = Reactive $ do
-    rf <- uf
-    ra <- ua
-    pure { r: rf.r ra.r
+    xf <- uf
+    xa <- ua
+    pure { r: xf.r xa.r
          , after: do
-             rf.after
-             ra.after }
+             xf.after
+             xa.after }
 
 instance bindReactive :: Bind (Reactive e) where
   (>>=) (Reactive ma) k = Reactive $ do
-    ra <- ma
-    rb <- unReactive $ k ra.r
-    pure { r: rb.r
+    xa <- ma
+    xb <- unReactive $ k xa.r
+    pure { r: xb.r
          , after: do
-             ra.after
-             rb.after }
+             xa.after
+             xb.after }
 
 instance monadReactive :: Monad (Reactive e)
 
-instance monadEffReactive :: MonadEff e (Reactive e) where
-  liftEff eff = Reactive $ do
+liftR eff = Reactive $ do -- XXX rename to liftR?
     a <- eff
     pure { r: a, after: pure unit }
+
+sequenceR :: forall e a. [Reactive e a] -> Reactive e [a]
+sequenceR rs = Reactive $ do
+  xs <- sequence $ unReactive <$> rs
+  pure { r: _.r <$> xs, after: sequence_ $ _.after <$> xs }

@@ -31,14 +31,14 @@ eventSpec = do
       sync $ es.push 3
       a.read >>= shouldEqual [2, 3]
 
-    it "push -> sink" do
+    it "push -> listen" do
       es <- sync $ newEvent
       a <- newAggregator
       sync $ es.push 2
       sync $ listen es.event a.record
       a.read >>= shouldEqual []
 
-    it "sink -> sink -> push" do
+    it "listen -> listen -> push" do
       es <- sync $ newEvent
       a1 <- newAggregator
       a2 <- newAggregator
@@ -48,13 +48,13 @@ eventSpec = do
       a1.read >>= shouldEqual [2]
       a2.read >>= shouldEqual [4]
 
-    it "sink -> push -> unsink -> push" do
+    it "listen -> push -> unlisten -> push" do
       a <- newAggregator
       es <- sync $ newEvent
-      unsink <- sync $ listen es.event a.record
+      unlisten <- sync $ listen es.event a.record
       sync $ es.push 2
       a.read >>= shouldEqual [2]
-      unsink
+      unlisten
       sync $ es.push 3
       a.read >>= shouldEqual [2]
 
@@ -87,6 +87,15 @@ eventSpec = do
       sync $ listen (es.event <> es.event) a.record
       sync $ es.push 2
       a.read >>= shouldEqual [2, 2]
+
+    it "unlisten in Reactive" do
+      es <- sync $ newEvent
+      a <- newAggregator
+      sync $ do
+        unlisten <- listen es.event a.record
+        es.push 2
+        liftR $ unlisten
+      a.read >>= shouldEqual []
 
   describe "event loop" do
     pending "make infinite loop."

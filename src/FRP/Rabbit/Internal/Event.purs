@@ -2,77 +2,86 @@ module FRP.Rabbit.Internal.Event
   ( Event(..)
   , newEvent
   , listen
+  , listenTrans
   , never
   , merge
   , filterJust
-  , listenI
+  , coalesce
   ) where
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
-import Control.Monad.Eff.Class (liftEff)
 import Data.Monoid
 import Data.Maybe
-import Data.Traversable (sequence)
-import Data.Foldable (sequence_)
 import Data.Array (reverse)
 import Control.Monad.Cont.Trans
 
 import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Internal.Reactive
 
-newtype Event e a = Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
+newtype Event e a = Event ((a -> (ReactiveR e Unit)) -> ReactiveR e (Eff (ref :: Ref | e) Unit))
 
--- Listener is after callback
--- ListenerI returns after callback
--- runContT returns unlistener(unsubscriber/unregisterer)
--- listenerE returns unlistener
-listen :: forall e a. Event e a -> Listener e a -> ReactiveR e (Unlistener e)
-listen ea listener = listenI ea \a -> return $ listener a
+listen :: forall e a. Event e a
+          -> Listener e a
+          -> ReactiveR e (Unlistener e)
+listen ea listener = listenTrans ea $ \a -> Reactive $ pure { r: unit, after: listener a }
 
--- listenI returns unlistener
-listenI :: forall e a. Event e a -> ListenerI e a -> ReactiveR e (Unlistener e)
-listenI (Event cont) listener = liftEff $ runContT cont listener
+listenTrans :: forall e a. Event e a
+               -> (a -> ReactiveR e Unit)
+               -> ReactiveR e (Eff (ref :: Ref | e) Unit)
+listenTrans (Event f) a = f a
 
 newEvent :: forall e a. ReactiveR e { event :: Event e a, push :: a -> ReactiveR e Unit }
-newEvent = liftEff $ do
+newEvent = liftR $ do
   listenerRefsRef <- newRef []
-  let event = Event $ ContT $ \listener -> do
-        listenerRef <- newRef listener
+  let event = Event $ \listener -> liftR $ do
+        listenerRef <- newRef Nothing
+        writeRef listenerRef $ Just $ \a ->
+          mapAfter (\after -> do
+                       l <- readRef listenerRef
+                       maybe (pure unit) (const after) l) $ listener a
         modifyRef listenerRefsRef (listenerRef :)
         pure $ do -- unlistener
           modifyRef listenerRefsRef $ removeOnce (listenerRef ==)
-          writeRef listenerRef $ const $ pure $ pure unit
-  let push = \a -> Reactive $ do
-        listenerRefs <- readRef listenerRefsRef
-        afters <- sequence $ readRef >>> (>>= ($ a)) <$> (reverse listenerRefs)
-        pure {
-          r: unit,
-          after: sequence_ afters
-        }
+          writeRef listenerRef Nothing
+  let push = \a -> do
+        listenerRefs <- liftR $ readRef listenerRefsRef
+        sequenceR $ (\ref -> do
+          l <- liftR $ readRef ref
+          maybe (pure unit) ($ a) l) <$> (reverse listenerRefs)
+        pure unit
   pure { event: event, push: push }
 
 instance monoidEvent :: Monoid (Event e a) where
   mempty = never
 
 never :: forall e a. Event e a
-never = Event $ ContT $ const $ return $ return unit
+never = Event $ const $ pure $ pure unit
 
 instance functorEvent :: Functor (Event e) where
-  (<$>) f (Event ca) = Event $ ContT $ \g -> runContT ca (f >>> g)
+  (<$>) f ea = Event $ \l -> listenTrans ea (f >>> l)
 
 instance semigroupEvent :: Semigroup (Event e a) where
   (<>) = merge
 
 merge :: forall e a. Event e a -> Event e a -> Event e a
-merge (Event ca) (Event cb) = Event $ ContT $ \f -> do
-    unlistenerA <- runContT ca f
-    unlistenerB <- runContT cb f
-    return do
+merge ea eb = Event $ \l -> do
+    unlistenerA <- listenTrans ea l
+    unlistenerB <- listenTrans eb l
+    pure do
       unlistenerA
       unlistenerB
 
 filterJust :: forall e a. Event e (Maybe a) -> Event e a
-filterJust (Event cma) = Event $ ContT $ \f ->
-  runContT cma \ma -> maybe (pure $ pure unit) f ma
+filterJust ea = Event $ \l ->
+  listenTrans ea \a -> maybe (pure unit) l a
 
+coalesce :: forall e a. (a -> a -> a) -> Event e a -> Event e a
+coalesce f ea = Event $ \listener -> do
+  accum <- liftR $ newRef Nothing
+  listenTrans ea $ \a -> Reactive $ do
+    modifyRef accum $ maybe (Just a) (\s -> Just $ f s a)
+    pure { r: unit
+         , after: do v <- readRef accum
+                     maybe (pure unit) (\x -> do writeRef accum Nothing
+                                                 sync $ listener x) v } -- XXX sync

@@ -26,7 +26,7 @@ behaviorSpec =
       sync $ es.push 2
       a.read >>= shouldEqual [1, 2]
 
-    it "push -> listenB -> push" do
+    it "push -> listenB -> push -> push" do
       es <- sync $ newEvent
       a <- newAggregator
       r <- sync $ 1 `hold` es.event
@@ -35,6 +35,8 @@ behaviorSpec =
       a.read >>= shouldEqual [2]
       sync $ es.push 3
       a.read >>= shouldEqual [2, 3]
+      sync $ es.push 4
+      a.read >>= shouldEqual [2, 3, 4]
 
     it "functorBehavior" do
       es <- sync $ newEvent
@@ -68,7 +70,7 @@ behaviorSpec =
       a <- newAggregator
       rx <- sync $ 1 `hold` esx.event
       ry <- sync $ 1 `hold` esy.event
-      sync $ listenB (do
+      unlisten <- sync $ listenB (do
                          x <- rx
                          y <- ry
                          pure $ [x, y]) a.record
@@ -84,6 +86,14 @@ behaviorSpec =
       a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3], [2, 4]]
 
       sync $ esx.push 5
+      a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3], [2, 4], [5, 4]]
+
+      unlisten
+
+      sync $ esx.push 6
+      a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3], [2, 4], [5, 4]]
+
+      sync $ esy.push 7
       a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3], [2, 4], [5, 4]]
 
     it "bind with self" do
@@ -103,10 +113,37 @@ behaviorSpec =
       es <- sync $ newEvent
       a <- newAggregator
       r <- sync $ 1 `hold` es.event
-      sync $ listenB r a.record
+      sync $ listen (value r) a.record
       a.read >>= shouldEqual [1]
 
       sync $ do
         es.push 2
         es.push 3
       a.read >>= shouldEqual [1, 3]
+
+    it "bind sync" do
+      esx <- sync $ newEvent
+      esy <- sync $ newEvent
+      a <- newAggregator
+      rx <- sync $ 1 `hold` esx.event
+      ry <- sync $ 1 `hold` esy.event
+      unlisten <- sync $ listen (value $ do
+                                    x <- rx
+                                    y <- ry
+                                    pure $ [x, y]) a.record
+      a.read >>= shouldEqual [[1, 1]]
+      sync $ do
+        esx.push 2
+        esy.push 3
+        esy.push 4
+        esx.push 5
+      a.read >>= shouldEqual [[1, 1], [5, 4]]
+
+    it "unlisten value" do
+      es <- sync $ newEvent
+      a <- newAggregator
+      r <- sync $ 1 `hold` es.event
+      sync $ do
+        unlisten <- listen (value r) a.record
+        liftR $ unlisten
+      a.read >>= shouldEqual []

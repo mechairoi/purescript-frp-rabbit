@@ -13,7 +13,6 @@ module FRP.Rabbit.Internal.Behavior
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
-import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Cont.Trans
 import Control.Bind (join)
 import Data.Monoid
@@ -26,36 +25,18 @@ newtype Behavior e a = Behavior { value :: (RefVal a) -- XXX rename value to ???
                                 , event :: (Event e a) }
 
 value :: forall e a. Behavior e a -> Event e a
-value (Behavior ba) = Event $ ContT $ (\listener -> do
-                                          v <- readRef ba.value
-                                          after <- listener v
-                                          after
-                                          sync $ listenI (updates (Behavior ba)) listener
-                                          pure $ pure unit)
+value ba = Event \listener -> do
+  es <- newEvent
+  a0 <- sample ba
+  unlistener <- listenTrans (es.event <> updates ba) listener
+  es.push a0
+  pure unlistener
 
 updates :: forall e a. Behavior e a -> Event e a
-updates (Behavior b) = b.event -- XXX not all events
+updates (Behavior b) = coalesce (\s a -> a) b.event
 
 listenB :: forall e a. Behavior e a -> Listener e a -> ReactiveR e (Unlistener e)
 listenB b = listen (value b)
--- listenBI :: forall e a. Behavior e a -> ListenerI e a -> Reactive e { after :: (WithRef e Unit), unlisten :: Unlistener e}
--- listenBI b = listenI (value b)
-
--- listenB :: forall e a. Behavior e a -> Listener e a -> Reactive e (Unlistener e)
--- listenB ba listener = Reactive $ do
---   res <- sync $ listenBI ba (\a -> return $ listener a)
---   res.after
---   pure $ res.unlisten
-
-listenBI :: forall e a. Behavior e a -> ListenerI e a -> ReactiveR e { after :: (WithRef e Unit), unlisten :: Unlistener e}
-listenBI (Behavior ba) listener = liftEff $ do -- XXX
-  a <- readRef ba.value
-  unlistener <- sync $ listenI ba.event (\a -> do
-                                            writeRef ba.value a
-                                            listener a)
-  after <- listener a
-  pure { after: after
-       , unlisten: unlistener }
 
 instance functorBehavior :: Functor (Behavior e) where
   (<$>) f ma = ma >>= (pure <<< f)
@@ -68,34 +49,48 @@ instance applyBehavior :: Apply (Behavior e) where
   (<*>) uf ua = uf >>= (\f -> ua >>= (pure <<< f))
 
 instance bindBehavior :: Bind (Behavior e) where
-  (>>=) ba k = Behavior
-    { value: unsafePerformEff $ do
-                  a <- sync $ sample ba
-                  b <- sync $ sample $ k a
-                  newRef b
-    , event: Event $ ContT $ \listener -> do
-                  unlistenerRef <- newRef Nothing
-                  res <- sync $ listenBI ba (\a' -> do
-                    maybeRef unlistenerRef
-                    new <- sync $ listenBI (k a') (\b' -> listener b')
-                    writeRef unlistenerRef $ Just new.unlisten
-                    pure new.after)
-                  pure $ do
-                    maybeRef unlistenerRef
-                    res.unlisten }
-    where maybeRef ref = readRef ref >>= maybe (pure unit) id
+  (>>=) ba k = unsafePerformEff do
+    a0 <- sync $ sample ba
+    b0 <- sync $ sample $ k a0
+    r0 <- newRef b0
+    pure $ Behavior
+      { value: r0
+      , event: Event $ \listener -> do
+                    let l = \b -> do liftR $ writeRef r0 b
+                                     listener b
+                    unlistenerB <- listenTrans (event $ k a0) l
+                    unlistenerRef <- liftR $ newRef unlistenerB
+                    unlistenerA <- listenTrans (event ba) (\a -> do
+                      liftR $ readRef unlistenerRef >>= id
+                      unlistenerB <- listenTrans (values $ k a) l
+                      liftR $ writeRef unlistenerRef $ unlistenerB
+                      pure unit)
+                    pure $ do
+                      readRef unlistenerRef >>= id
+                      unlistenerA }
+
+-- internal
+values :: forall e a. Behavior e a -> Event e a
+values ba = Event \listener -> do
+  es <- newEvent
+  a0 <- sample ba
+  unlistener <- listenTrans (es.event <> event ba) listener
+  es.push a0
+  pure unlistener
+
+event :: forall e a. Behavior e a -> Event e a
+event (Behavior b) = b.event
 
 sample :: forall e a. Behavior e a -> ReactiveR e a
-sample (Behavior ba) = liftEff $ readRef ba.value
+sample (Behavior ba) = liftR $ readRef ba.value
 
 instance monadBehavior :: Monad (Behavior e)
 
 hold :: forall a e. a -> Event e a -> ReactiveR e (Behavior e a)
-hold a e = liftEff $ do
-  value <- newRef a
-  sync $ listenI e $ (\a' -> do -- unlistener or leak?
-                         writeRef value a'
-                         pure $ pure unit)
+hold a e = do
+  value <- liftR $ newRef a
+  listenTrans e $ (\a' -> do liftR $ writeRef value a'
+                             pure unit)
   pure $ Behavior { value: value, event: e }
 
 -- switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a

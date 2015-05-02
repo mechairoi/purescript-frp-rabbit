@@ -5,9 +5,8 @@ import Control.Monad.Eff.Ref
 
 type WithRef eff a = Eff (ref :: Ref | eff) a
 
-type ListenerI eff a = a -> WithRef eff (WithRef eff Unit)
-type Listener eff a = a -> WithRef eff Unit
-type Unlistener eff = WithRef eff Unit
+type Listener eff a = a -> Eff (ref :: Ref | eff) Unit
+type Unlistener eff = Eff (ref :: Ref | eff) Unit
 
 foreign import unsafeCoerce """
   function unsafeCoerce(x) {
