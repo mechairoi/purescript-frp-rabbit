@@ -1,10 +1,16 @@
 module FRP.Rabbit
-  ( Sink(), WithRef()
-  , Event(), sinkE, newEventWithSource
-  , Behavior(), sinkR, stepperR, switcherR
-  , stateful
+  ( Reactive()
+  , sync
+  , Event(), Behavior()
+  , listen, newEvent, never, merge, filterJust
+  -- , newBehavior
+  , hold, updates, value, {- snapshot, switchE, switch, execute, -} sample
+  -- , coalesce, once, split, mergeWith, filterE, gate
+  , collectE
+  -- , collect, accum
   ) where
 
+import qualified FRP.Rabbit.Internal.Reactive as Reactive
 import qualified FRP.Rabbit.Internal.Behavior as Behavior
 import qualified FRP.Rabbit.Internal.Event as Event
 import qualified FRP.Rabbit.Internal.Sugar as Sugar
@@ -12,13 +18,22 @@ import qualified FRP.Rabbit.Internal.Util as Util
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
-type WithRef eff a = Eff (ref :: Ref | eff) a
+import Data.Maybe
 
--- | The `Sink a` type represents callback functions.
+type Reactive eff a = Reactive.Reactive eff a
+type Unlistener eff = Util.Unlistener eff
+
+sync :: forall e a. Reactive e a -> Eff (ref :: Ref | e) a
+sync = Reactive.sync
+
+-- | The `listen` function registers a callback function for an `Event`.
 -- |
--- | `Sink` is often used by `sinkR` and `sinkE`.
--- | These function are register a callback.
-type Sink eff a = a -> WithRef eff Unit
+-- | It's like `.addEventListener()` or subscribe an observable.
+-- | `listen` can only subscribe future values to prevent memory leak.
+listen :: forall e a. Event e a
+          -> (a -> Eff (ref :: Ref | e) Unit)
+          -> Reactive e (Eff (ref :: Ref | e) Unit)
+listen = Event.listen
 
 -- | The `Event eff a` type represents streams of timed values (discrete siganl).
 -- | It's a primitive of `FRP.Rabbit`.
@@ -26,20 +41,6 @@ type Sink eff a = a -> WithRef eff Unit
 -- | These timed values are inhabitants of _a_.
 -- | `Event` is an instance of `Monoid` and `Functor`.
 type Event eff a = Event.Event eff a
-
--- | The `newEventWithSource` function create new pair of an `Event` and a source.
--- | The source function triggers a timed value for the event.
-newEventWithSource :: forall e a. WithRef e { event :: Event e a, source :: Sink e a }
-newEventWithSource = Event.newEventWithSource
-
--- | The `sinkE` function registers a callback function for an `Event`.
--- |
--- | It's like `.addEventListener()` or subscribe an observable.
--- | `sinkE` can only subscribe future values to prevent memory leak.
--- | Please use `sinkR` to subscribe an `Behavior`.
-sinkE :: forall e a. Sink e a -> Event e a -> WithRef e (WithRef e Unit)
-sinkE = Event.sinkE
-
 
 -- | The `Behavior eff a` type represents streams of timed values,
 -- | but semantically it is continuous time function whose value is the last timed value at the thme.
@@ -50,21 +51,68 @@ sinkE = Event.sinkE
 -- | `Event` is an instance of `Monad`.
 type Behavior e a = Behavior.Behavior e a
 
--- | The `sinkR` function registers a callback function for a `Behavior`.
--- |
--- | It's like `.addEventListener()` or subscribe an observable.
--- | `sinkR` can only subscribe current and future values to prevent memory leak.
--- | Please use `sinkE` to subscribe an `Event`.
-sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
-sinkR = Behavior.sinkR
+-- | The `newEvent` function create new pair of an `Event` and a push function.
+-- | The push function triggers a timed value for the event.
+newEvent :: forall e a. Reactive e { event :: Event e a, push :: a -> Reactive e Unit }
+newEvent = Event.newEvent
 
-stepperR :: forall a e. a -> Event e a -> Behavior e a
-stepperR = Behavior.stepperR
+never :: forall e a. Event e a
+never = Event.never
 
-switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
-switcherR = Behavior.switcherR
+merge :: forall e a. Event e a -> Event e a -> Event e a
+merge = Event.merge
 
-stateful :: forall e a b. (a -> b -> b) -> b ->
+filterJust :: forall e a. Event e (Maybe a) -> Event e a
+filterJust = Event.filterJust
+
+hold :: forall e a. a -> Event e a -> Reactive e (Behavior e a)
+hold = Behavior.hold
+
+updates :: forall e a. Behavior e a -> Event e a
+updates = Behavior.updates
+
+value :: forall e a. Behavior e a -> Event e a
+value = Behavior.value
+
+-- snapshot :: forall e a. (a -> b -> c) -> Event e a -> Behavior e b -> Event e c
+-- snapshot = Behavior.snapshot
+
+-- switchE :: forall e a. Behavior e (Event e a) -> Event e a
+-- switchE = Behavior.switchE
+
+-- switch :: forall e a. Behavior e (Behavior e a) -> Reactive e (Behavior e a)
+-- switch = Behavior.switch
+
+-- execute :: forall e a. Event e (Reactive e a) -> Event e a
+-- execute = Event.execute
+
+sample :: forall e a. Behavior e a -> Reactive e a
+sample = Behavior.sample
+
+-- coalesce :: forall e a. (a -> a -> a) -> Event e a -> Event e a
+
+-- once :: forall e a. Event e a -> Event e a
+
+-- split :: forall e a. Event e [a] -> Event e a
+
+-- mergeWith :: forall e a. (a -> a -> a) -> Event e a -> Event e a -> Event e a
+
+-- filterE :: forall e a. (a -> Bool) -> Event e a -> Event e a
+
+-- gate :: forall e a. Event e a -> Behavior e Bool -> Event e a
+
+collectE :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
-            WithRef e (Behavior e b)
-stateful = Sugar.stateful
+            Reactive e (Behavior e b)
+collectE = Sugar.collectE
+
+-- collect ::  forall e a b s. (a -> s -> (b, s)) -> s -> Behavior a -> Reactive (Behavior b)
+
+-- accum :: a -> Event (a -> a) -> Reactive (Behavior a)
+
+
+-- | The `Listener a` type represents callback functions.
+-- |
+-- | `Listener` is often used by `sinkR` and `sinkE`.
+-- | These function are register a callback.
+type Listener eff a = a -> Eff (ref :: Ref | eff) Unit

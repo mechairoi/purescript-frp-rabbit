@@ -7,14 +7,16 @@ import Control.Monad.Eff.Ref
 import qualified VirtualDOM as V
 import VirtualDOM.VTree
 import DOM
+import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Behavior
+import FRP.Rabbit.Internal.Reactive
 import FRP.Rabbit.Internal.Util
 
 runBehaviorVTree :: forall e. Behavior (dom :: DOM | e) VTree
                            -> WithRef (dom :: DOM | e) DOM.Node
 runBehaviorVTree rvtree = do
   ref <- newRef Nothing
-  sinkR (\vnode' -> do
+  sync $ listen (value rvtree) (\vnode' -> do
     state <- readRef ref
     case state of
       Nothing -> do
@@ -23,7 +25,7 @@ runBehaviorVTree rvtree = do
       Just { real: node, virtual: vnode } -> do
         V.patch (V.diff vnode vnode') node
         writeRef ref $ Just { real: node, virtual: vnode' }
-    ) rvtree
+    )
   Just s <- readRef ref -- XXX
   let node = s.real :: DOM.Node
   return node

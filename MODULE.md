@@ -2,23 +2,30 @@
 
 ## Module FRP.Rabbit
 
-#### `WithRef`
+#### `Reactive`
 
 ``` purescript
-type WithRef eff a = Eff (ref :: Ref | eff) a
+type Reactive eff a = Reactive.Reactive eff a
 ```
 
 
-#### `Sink`
+#### `sync`
 
 ``` purescript
-type Sink eff a = a -> WithRef eff Unit
+sync :: forall e a. Reactive e a -> Eff (ref :: Ref | e) a
 ```
 
-The `Sink a` type represents callback functions.
 
-`Sink` is often used by `sinkR` and `sinkE`.
-These function are register a callback.
+#### `listen`
+
+``` purescript
+listen :: forall e a. Event e a -> (a -> Eff (ref :: Ref | e) Unit) -> Reactive e (Eff (ref :: Ref | e) Unit)
+```
+
+The `listen` function registers a callback function for an `Event`.
+
+It's like `.addEventListener()` or subscribe an observable.
+`listen` can only subscribe future values to prevent memory leak.
 
 #### `Event`
 
@@ -31,27 +38,6 @@ It's a primitive of `FRP.Rabbit`.
 
 These timed values are inhabitants of _a_.
 `Event` is an instance of `Monoid` and `Functor`.
-
-#### `newEventWithSource`
-
-``` purescript
-newEventWithSource :: forall e a. WithRef e { source :: Sink e a, event :: Event e a }
-```
-
-The `newEventWithSource` function create new pair of an `Event` and a source.
-The source function triggers a timed value for the event.
-
-#### `sinkE`
-
-``` purescript
-sinkE :: forall e a. Sink e a -> Event e a -> WithRef e (WithRef e Unit)
-```
-
-The `sinkE` function registers a callback function for an `Event`.
-
-It's like `.addEventListener()` or subscribe an observable.
-`sinkE` can only subscribe future values to prevent memory leak.
-Please use `sinkR` to subscribe an `Behavior`.
 
 #### `Behavior`
 
@@ -67,38 +53,68 @@ It's a primitive of `FRP.Rabbit`.
 These timed values are inhabitants of _a_.
 `Event` is an instance of `Monad`.
 
-#### `sinkR`
+#### `newEvent`
 
 ``` purescript
-sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
+newEvent :: forall e a. Reactive e { push :: a -> Reactive e Unit, event :: Event e a }
 ```
 
-The `sinkR` function registers a callback function for a `Behavior`.
+The `newEvent` function create new pair of an `Event` and a push function.
+The push function triggers a timed value for the event.
 
-It's like `.addEventListener()` or subscribe an observable.
-`sinkR` can only subscribe current and future values to prevent memory leak.
-Please use `sinkE` to subscribe an `Event`.
-
-#### `stepperR`
+#### `never`
 
 ``` purescript
-stepperR :: forall a e. a -> Event e a -> Behavior e a
+never :: forall e a. Event e a
 ```
 
 
-#### `switcherR`
+#### `merge`
 
 ``` purescript
-switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
+merge :: forall e a. Event e a -> Event e a -> Event e a
 ```
 
 
-#### `stateful`
+#### `filterJust`
 
 ``` purescript
-stateful :: forall e a b. (a -> b -> b) -> b -> Event e a -> WithRef e (Behavior e b)
+filterJust :: forall e a. Event e (Maybe a) -> Event e a
 ```
 
+
+#### `hold`
+
+``` purescript
+hold :: forall e a. a -> Event e a -> Reactive e (Behavior e a)
+```
+
+
+#### `updates`
+
+``` purescript
+updates :: forall e a. Behavior e a -> Event e a
+```
+
+
+#### `value`
+
+``` purescript
+value :: forall e a. Behavior e a -> Event e a
+```
+
+
+#### `sample`
+
+``` purescript
+sample :: forall e a. Behavior e a -> Reactive e a
+```
+
+#### `collectE`
+
+``` purescript
+collectE :: forall e a b. (a -> b -> b) -> b -> Event e a -> Reactive e (Behavior e b)
+```
 
 
 ## Module FRP.Rabbit.VirtualDOM
@@ -120,17 +136,17 @@ newtype Behavior e a
 ```
 
 
-#### `sinkR`
+#### `value`
 
 ``` purescript
-sinkR :: forall e a. Sink e a -> Behavior e a -> WithRef e (WithRef e Unit)
+value :: forall e a. Behavior e a -> Event e a
 ```
 
 
-#### `sinkRI`
+#### `updates`
 
 ``` purescript
-sinkRI :: forall e a. SinkI e a -> Behavior e a -> WithRef e { unsink :: WithRef e Unit, after :: WithRef e Unit }
+updates :: forall e a. Behavior e a -> Event e a
 ```
 
 
@@ -162,6 +178,13 @@ instance bindBehavior :: Bind (Behavior e)
 ```
 
 
+#### `sample`
+
+``` purescript
+sample :: forall e a. Behavior e a -> Reactive e a
+```
+
+
 #### `monadBehavior`
 
 ``` purescript
@@ -169,17 +192,10 @@ instance monadBehavior :: Monad (Behavior e)
 ```
 
 
-#### `stepperR`
+#### `hold`
 
 ``` purescript
-stepperR :: forall a e. a -> Event e a -> Behavior e a
-```
-
-
-#### `switcherR`
-
-``` purescript
-switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
+hold :: forall a e. a -> Event e a -> Reactive e (Behavior e a)
 ```
 
 
@@ -194,22 +210,22 @@ newtype Event e a
 ```
 
 
-#### `sinkE`
+#### `listen`
 
 ``` purescript
-sinkE :: forall e a. Sink e a -> Event e a -> WithRef e (WithRef e Unit)
+listen :: forall e a. Event e a -> Listener e a -> Reactive e (Unlistener e)
 ```
 
-#### `sinkEI`
+#### `listenI`
 
 ``` purescript
-sinkEI :: forall e a. SinkI e a -> Event e a -> WithRef e (WithRef e Unit)
+listenI :: forall e a. Event e a -> ListenerI e a -> Reactive e (Unlistener e)
 ```
 
-#### `newEventWithSource`
+#### `newEvent`
 
 ``` purescript
-newEventWithSource :: forall e a. WithRef e { source :: Sink e a, event :: Event e a }
+newEvent :: forall e a. Reactive e { push :: a -> Reactive e Unit, event :: Event e a }
 ```
 
 
@@ -217,6 +233,13 @@ newEventWithSource :: forall e a. WithRef e { source :: Sink e a, event :: Event
 
 ``` purescript
 instance monoidEvent :: Monoid (Event e a)
+```
+
+
+#### `never`
+
+``` purescript
+never :: forall e a. Event e a
 ```
 
 
@@ -234,13 +257,80 @@ instance semigroupEvent :: Semigroup (Event e a)
 ```
 
 
+#### `merge`
+
+``` purescript
+merge :: forall e a. Event e a -> Event e a -> Event e a
+```
+
+
+#### `filterJust`
+
+``` purescript
+filterJust :: forall e a. Event e (Maybe a) -> Event e a
+```
+
+
+
+## Module FRP.Rabbit.Internal.Reactive
+
+#### `Reactive`
+
+``` purescript
+newtype Reactive e a
+  = Reactive (Eff (ref :: Ref | e) a)
+```
+
+
+#### `sync`
+
+``` purescript
+sync :: forall e a. Reactive e a -> Eff (ref :: Ref | e) a
+```
+
+
+#### `functorReactive`
+
+``` purescript
+instance functorReactive :: Functor (Reactive e)
+```
+
+
+#### `applicativeReactive`
+
+``` purescript
+instance applicativeReactive :: Applicative (Reactive e)
+```
+
+
+#### `applyReactive`
+
+``` purescript
+instance applyReactive :: Apply (Reactive e)
+```
+
+
+#### `bindReactive`
+
+``` purescript
+instance bindReactive :: Bind (Reactive e)
+```
+
+
+#### `monadReactive`
+
+``` purescript
+instance monadReactive :: Monad (Reactive e)
+```
+
+
 
 ## Module FRP.Rabbit.Internal.Sugar
 
-#### `stateful`
+#### `collectE`
 
 ``` purescript
-stateful :: forall e a b. (a -> b -> b) -> b -> Event e a -> WithRef e (Behavior e b)
+collectE :: forall e a b. (a -> b -> b) -> b -> Event e a -> Reactive e (Behavior e b)
 ```
 
 
@@ -254,17 +344,24 @@ type WithRef eff a = Eff (ref :: Ref | eff) a
 ```
 
 
-#### `SinkI`
+#### `ListenerI`
 
 ``` purescript
-type SinkI eff a = a -> WithRef eff (WithRef eff Unit)
+type ListenerI eff a = a -> WithRef eff (WithRef eff Unit)
 ```
 
 
-#### `Sink`
+#### `Listener`
 
 ``` purescript
-type Sink eff a = a -> WithRef eff Unit
+type Listener eff a = a -> WithRef eff Unit
+```
+
+
+#### `Unlistener`
+
+``` purescript
+type Unlistener eff = WithRef eff Unit
 ```
 
 
