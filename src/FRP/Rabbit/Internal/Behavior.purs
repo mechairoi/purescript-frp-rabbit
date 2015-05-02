@@ -1,6 +1,6 @@
 module FRP.Rabbit.Internal.Behavior
   ( Behavior()
-  -- , listenB
+  , listenB
   -- , listenBI
   , sample
   , hold
@@ -21,7 +21,7 @@ import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Reactive
 
-newtype Behavior e a = Behavior { value :: (RefVal a)
+newtype Behavior e a = Behavior { value :: (RefVal a) -- XXX rename value to ???
                                 , event :: (Event e a) }
 
 value :: forall e a. Behavior e a -> Event e a

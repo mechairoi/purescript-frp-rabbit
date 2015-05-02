@@ -6,92 +6,95 @@ import Debug.Trace
 
 import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Event
+import FRP.Rabbit.Internal.Reactive
 
 import Test.Spec
 import Test.Spec.Assertions
 
 import Test.FRP.Rabbit.Util
 
+-- listenB b = listen (value b)
+
 behaviorSpec =
   describe "behavior" do
-    it "sinkR -> source" do
-      es <- newEventWithSource
+    it "listenB -> push" do
+      es <- sync $ newEvent
       a <- newAggregator
-      let r = 1 `stepperR` es.event
-      sinkR a.record r
+      r <- sync $ 1 `hold` es.event
+      sync $ listenB r a.record
       a.read >>= shouldEqual [1]
-      es.source 2
+      sync $ es.push 2
       a.read >>= shouldEqual [1, 2]
 
-    it "source -> sinkR -> source" do
-      es <- newEventWithSource
+    it "push -> listenB -> push" do
+      es <- sync $ newEvent
       a <- newAggregator
-      let r = 1 `stepperR` es.event
-      es.source 2
-      sinkR a.record r
+      r <- sync $ 1 `hold` es.event
+      sync $ es.push 2
+      sync $ listenB r a.record
       a.read >>= shouldEqual [2]
-      es.source 3
+      sync $ es.push 3
       a.read >>= shouldEqual [2, 3]
 
     it "functorBehavior" do
-      es <- newEventWithSource
+      es <- sync $ newEvent
       a <- newAggregator
-      let r = 1 `stepperR` es.event
-      sinkR a.record $ (3 *) <$> r
+      r <- sync $ 1 `hold` es.event
+      sync $ listenB ((3 *) <$> r) a.record
       a.read >>= shouldEqual [3]
-      es.source 2
+      sync $ es.push 2
       a.read >>= shouldEqual [3, 6]
 
     it "applicativeBehavior" do
-      esa <- newEventWithSource
-      esf <- newEventWithSource
+      esa <- sync $ newEvent
+      esf <- sync $ newEvent
       a <- newAggregator
-      let ra = 1 `stepperR` esa.event
-      let rf = (: [2]) `stepperR` esf.event
-      sinkR a.record $ rf <*> ra
+      ra <- sync $ 1 `hold` esa.event
+      rf <- sync $ (: [2]) `hold` esf.event
+      sync $ listenB (rf <*> ra) a.record
       a.read >>= shouldEqual [[1, 2]]
-      esa.source 2
+      sync $ esa.push 2
       a.read >>= shouldEqual [[1, 2], [2, 2]]
-      esa.source 3
+      sync $ esa.push 3
       a.read >>= shouldEqual [[1, 2], [2, 2], [3, 2]]
-      esf.source (: [3])
+      sync $ esf.push (: [3])
       a.read >>= shouldEqual [[1, 2], [2, 2], [3, 2], [3, 3]]
-      esf.source (: [4])
+      sync $ esf.push (: [4])
       a.read >>= shouldEqual [[1, 2], [2, 2], [3, 2], [3, 3], [3, 4]]
 
     it "bindBehavior" do
-      esx <- newEventWithSource
-      esy <- newEventWithSource
+      esx <- sync $ newEvent
+      esy <- sync $ newEvent
       a <- newAggregator
-      let rx = 1 `stepperR` esx.event
-      let ry = 1 `stepperR` esy.event
-      sinkR a.record $ do
-        x <- rx
-        y <- ry
-        return $ [x, y]
+      rx <- sync $ 1 `hold` esx.event
+      ry <- sync $ 1 `hold` esy.event
+      sync $ listenB (do
+                         x <- rx
+                         y <- ry
+                         pure $ [x, y]) a.record
       a.read >>= shouldEqual [[1, 1]]
 
-      esx.source 2
+      sync $ esx.push 2
       a.read >>= shouldEqual [[1, 1], [2, 1]]
 
-      esy.source 3
+      sync $ esy.push 3
       a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3]]
 
-      esy.source 4
+      sync $ esy.push 4
       a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3], [2, 4]]
 
-      esx.source 5
+      sync $ esx.push 5
       a.read >>= shouldEqual [[1, 1], [2, 1], [2, 3], [2, 4], [5, 4]]
 
     it "bind with self" do
-      es <- newEventWithSource
+      es <- sync $ newEvent
       a <- newAggregator
-      let r = 1 `stepperR` es.event
-      sinkR a.record $ do
+      r <- sync $ 1 `hold` es.event
+      sync $ listenB (do
         x <- r
         y <- r
-        return $ [x, y]
+        pure $ [x, y]) a.record
       a.read >>= shouldEqual [[1, 1]]
 
-      es.source 2
+      sync $ es.push 2
       a.read >>= shouldEqual [[1, 1], [2, 2]]
