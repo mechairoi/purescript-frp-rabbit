@@ -1,5 +1,5 @@
 module FRP.Rabbit
-  ( Reactive()
+  ( Reactive(), ReactiveR(..)
   , sync
   , Event(), Behavior()
   , listen, newEvent, never, merge, filterJust
@@ -21,9 +21,9 @@ import Control.Monad.Eff.Ref
 import Data.Maybe
 
 type Reactive eff a = Reactive.Reactive eff a
-type Unlistener eff = Util.Unlistener eff
+type ReactiveR e a = Reactive (ref :: Ref | e) a
 
-sync :: forall e a. Reactive e a -> Eff (ref :: Ref | e) a
+sync :: forall e a. Reactive e a -> Eff e a
 sync = Reactive.sync
 
 -- | The `listen` function registers a callback function for an `Event`.
@@ -32,7 +32,7 @@ sync = Reactive.sync
 -- | `listen` can only subscribe future values to prevent memory leak.
 listen :: forall e a. Event e a
           -> (a -> Eff (ref :: Ref | e) Unit)
-          -> Reactive e (Eff (ref :: Ref | e) Unit)
+          -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 listen = Event.listen
 
 -- | The `Event eff a` type represents streams of timed values (discrete siganl).
@@ -53,7 +53,7 @@ type Behavior e a = Behavior.Behavior e a
 
 -- | The `newEvent` function create new pair of an `Event` and a push function.
 -- | The push function triggers a timed value for the event.
-newEvent :: forall e a. Reactive e { event :: Event e a, push :: a -> Reactive e Unit }
+newEvent :: forall e a. ReactiveR e { event :: Event e a, push :: a -> ReactiveR e Unit }
 newEvent = Event.newEvent
 
 never :: forall e a. Event e a
@@ -65,7 +65,7 @@ merge = Event.merge
 filterJust :: forall e a. Event e (Maybe a) -> Event e a
 filterJust = Event.filterJust
 
-hold :: forall e a. a -> Event e a -> Reactive e (Behavior e a)
+hold :: forall e a. a -> Event e a -> ReactiveR e (Behavior e a)
 hold = Behavior.hold
 
 updates :: forall e a. Behavior e a -> Event e a
@@ -86,7 +86,7 @@ value = Behavior.value
 -- execute :: forall e a. Event e (Reactive e a) -> Event e a
 -- execute = Event.execute
 
-sample :: forall e a. Behavior e a -> Reactive e a
+sample :: forall e a. Behavior e a -> ReactiveR e a
 sample = Behavior.sample
 
 -- coalesce :: forall e a. (a -> a -> a) -> Event e a -> Event e a
@@ -103,7 +103,7 @@ sample = Behavior.sample
 
 collectE :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
-            Reactive e (Behavior e b)
+            ReactiveR e (Behavior e b)
 collectE = Sugar.collectE
 
 -- collect ::  forall e a b s. (a -> s -> (b, s)) -> s -> Behavior a -> Reactive (Behavior b)

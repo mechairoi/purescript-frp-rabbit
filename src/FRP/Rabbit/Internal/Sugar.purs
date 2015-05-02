@@ -3,6 +3,7 @@ module FRP.Rabbit.Internal.Sugar
   ) where
 
 import Control.Monad.Eff.Ref
+import Control.Monad.Eff.Class (liftEff)
 
 import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Event
@@ -11,8 +12,8 @@ import FRP.Rabbit.Internal.Reactive
 
 collectE :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
-            Reactive e (Behavior e b)
-collectE f b0 ea = Reactive $ do
+            ReactiveR e (Behavior e b)
+collectE f b0 ea = liftEff $ do
   es <- sync $ newEvent
   rb <- sync $ b0 `hold` es.event
   ref <- newRef b0
