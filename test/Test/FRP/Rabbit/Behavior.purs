@@ -13,7 +13,7 @@ import Test.Spec.Assertions
 
 import Test.FRP.Rabbit.Util
 
--- listenB b = listen (value b)
+listenB b = listen (value b)
 
 behaviorSpec =
   describe "behavior" do
@@ -100,6 +100,19 @@ behaviorSpec =
       es <- sync $ newEvent
       a <- newAggregator
       r <- sync $ 1 `hold` es.event
+      sync $ listenB (do
+        x <- r
+        y <- r
+        pure $ [x, y]) a.record
+      a.read >>= shouldEqual [[1, 1]]
+
+      sync $ es.push 2
+      a.read >>= shouldEqual [[1, 1], [2, 2]]
+
+    it "bind with self coalesce" do
+      es <- sync $ newEvent
+      a <- newAggregator
+      r <- sync $ 1 `hold` (coalesce (\s a -> a) es.event)
       sync $ listenB (do
         x <- r
         y <- r

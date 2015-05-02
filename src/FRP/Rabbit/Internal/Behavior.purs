@@ -1,7 +1,5 @@
 module FRP.Rabbit.Internal.Behavior
   ( Behavior()
-  , listenB
-  -- , listenBI
   , sample
   , hold
   , updates
@@ -34,9 +32,6 @@ value ba = Event \listener -> do
 
 updates :: forall e a. Behavior e a -> Event e a
 updates (Behavior b) = coalesce (\s a -> a) b.event
-
-listenB :: forall e a. Behavior e a -> Listener e a -> ReactiveR e (Unlistener e)
-listenB b = listen (value b)
 
 instance functorBehavior :: Functor (Behavior e) where
   (<$>) f ma = ma >>= (pure <<< f)

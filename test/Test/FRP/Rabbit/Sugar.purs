@@ -20,7 +20,7 @@ sugarSpec =
       es <- sync $ newEvent
       a <- newAggregator
       r <- sync $ collectE (\a b -> a : b) [] es.event
-      sync $ listenB r a.record
+      sync $ listen (value r) a.record
       a.read >>= shouldEqual [[]]
       sync $ es.push 2
       a.read >>= shouldEqual [[], [2]]
