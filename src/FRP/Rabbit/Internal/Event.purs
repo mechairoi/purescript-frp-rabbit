@@ -77,11 +77,13 @@ filterJust ea = Event $ \l ->
   listenTrans ea \a -> maybe (pure unit) l a
 
 coalesce :: forall e a. (a -> a -> a) -> Event e a -> Event e a
-coalesce f ea = Event $ \listener -> do
-  accum <- liftR $ newRef Nothing
-  listenTrans ea $ \a -> Reactive $ do
+coalesce f ea = unsafePerformEff do
+  es <- sync $ newEvent
+  accum <- newRef Nothing
+  sync $ listenTrans ea $ \a -> Reactive $ do -- XXX unlisten
     modifyRef accum $ maybe (Just a) (\s -> Just $ f s a)
     pure { r: unit
          , after: do v <- readRef accum
                      maybe (pure unit) (\x -> do writeRef accum Nothing
-                                                 sync $ listener x) v } -- XXX sync
+                                                 sync $ es.push x) v }
+  pure es.event

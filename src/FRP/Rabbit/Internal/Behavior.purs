@@ -84,7 +84,7 @@ instance monadBehavior :: Monad (Behavior e)
 hold :: forall a e. a -> Event e a -> ReactiveR e (Behavior e a)
 hold a e = do
   value <- liftR $ newRef a
-  listenTrans e $ (\a' -> do liftR $ writeRef value a'
+  listenTrans e $ (\a' -> do liftR $ writeRef value a' -- XXX unlisten?
                              pure unit)
   pure $ Behavior { value: value, event: e }
 
