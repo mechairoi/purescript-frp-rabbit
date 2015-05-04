@@ -3,6 +3,7 @@ module Test.FRP.Rabbit.Event
   ) where
 
 import Debug.Trace
+import Data.Maybe
 
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Reactive
@@ -96,6 +97,43 @@ eventSpec = do
         es.push 2
         liftR $ unlisten
       a.read >>= shouldEqual []
+
+    it "once" do
+      a <- newAggregator
+      es <- sync $ newEvent
+      sync $ listen (once es.event) a.record
+      sync $ es.push 2
+      a.read >>= shouldEqual [2]
+
+      sync $ es.push 3
+      a.read >>= shouldEqual [2]
+
+    it "filterJust" do
+      a <- newAggregator
+      es <- sync $ newEvent
+      sync $ listen (filterJust es.event) a.record
+      sync $ es.push $ Just 2
+      a.read >>= shouldEqual [2]
+
+      sync $ es.push $ Nothing
+      a.read >>= shouldEqual [2]
+
+      sync $ es.push $ Just 3
+      a.read >>= shouldEqual [2, 3]
+
+    it "filterE" do
+      a <- newAggregator
+      es <- sync $ newEvent
+      let even = (\x -> x % 2 == 0)
+      sync $ listen (filterE even es.event) a.record
+      sync $ es.push $ 2
+      a.read >>= shouldEqual [2]
+
+      sync $ es.push $ 3
+      a.read >>= shouldEqual [2]
+
+      sync $ es.push $ 4
+      a.read >>= shouldEqual [2, 4]
 
   describe "event loop" do
     pending "make infinite loop."
