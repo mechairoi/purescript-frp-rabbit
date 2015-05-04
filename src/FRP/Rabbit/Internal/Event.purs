@@ -32,7 +32,8 @@ listenTrans :: forall e a. Event e a
                -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 listenTrans (Event f) a = f a
 
-newEvent :: forall e a. ReactiveR e { event :: Event e a, push :: a -> ReactiveR e Unit }
+newEvent :: forall e a. ReactiveR e { event :: Event e a
+                                    , push :: a -> ReactiveR e Unit }
 newEvent = liftR $ do
   listenerRefsRef <- newRef []
   let event = Event $ \listener -> liftR $ do
