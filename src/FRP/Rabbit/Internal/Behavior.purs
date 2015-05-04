@@ -1,10 +1,11 @@
 module FRP.Rabbit.Internal.Behavior
   ( Behavior()
+  , newBehavior
   , sample
   , hold
   , updates
   , value
-  -- , snapshot
+  , snapshot
   -- , switchE
   -- , switch
   , keep
@@ -25,6 +26,11 @@ newtype Behavior e a = Behavior { last :: (RefVal a)
                                 , event :: (Event e a)
                                 , listenCounter :: (RefVal Int)
                                 , deactivate :: RefVal (Eff (ref :: Ref | e) Unit) }
+
+newBehavior :: forall e a. a -> ReactiveR e { behavior :: (Behavior e a)
+                                            , push :: a -> (ReactiveR e Unit) }
+newBehavior a = do es <- newEvent
+                   pure { behavior : a `stepperR` es.event, push : es.push }
 
 -- | `keep` activates the behavior.
 -- | It returns the function to release.
@@ -110,6 +116,16 @@ stepperR a e = Behavior { last: unsafePerformEff $ newRef a
                         , listenCounter: unsafePerformEff $ newRef zero
                         , deactivate: unsafePerformEff $ newRef $ pure unit
                         }
+
+snapshot :: forall a b c. (a -> b -> c)
+            -> Event _ a
+            -> Behavior _ b
+            -> (Event _ c)
+snapshot f ea bb = Event \l ->
+  listenTrans ea (\a -> do
+    b <- sample bb
+    l $ f a b
+  )
 
 -- switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 -- switcherR r er = join (r `hold` er)
