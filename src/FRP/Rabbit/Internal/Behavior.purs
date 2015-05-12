@@ -120,10 +120,10 @@ stepperR a e = Behavior { last: unsafePerformEff $ newRef a
                         , deactivate: unsafePerformEff $ newRef $ pure unit
                         }
 
-snapshot :: forall a b c. (a -> b -> c)
-            -> Event _ a
-            -> Behavior _ b
-            -> (Event _ c)
+snapshot :: forall e a b c. (a -> b -> c)
+            -> Event e a
+            -> Behavior e b
+            -> Event e c
 snapshot f ea bb = Event \l -> do
   release <- keep bb
   unlisten <- listenTrans ea (\a -> do
