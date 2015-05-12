@@ -189,3 +189,13 @@ collect f s0 ba = do
       let s' = f a s
       liftR $ writeRef sRef s'
       l s'
+
+accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
+accum a0 ef = do
+  aRef <- liftR $ newRef a0
+  a0 `hold` Event \l ->
+    listenTrans ef \f -> do
+      a <- liftR $ readRef aRef
+      let a' = f a
+      liftR $ writeRef aRef a'
+      l a'
