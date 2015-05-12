@@ -147,3 +147,14 @@ behaviorSpec =
 
       sync $ es.push 6
       a.read >>= shouldEqual [[3,2], [4,2], [6,5]]
+
+    it "collectE" do
+      es <- sync $ newEvent
+      a <- newAggregator
+      r <- sync $ collectE (\a b -> a : b) [] es.event
+      sync $ listen (value r) a.record
+      -- a.read >>= shouldEqual [[]]
+      sync $ es.push 2
+      -- a.read >>= shouldEqual [[], [2]]
+      sync $ es.push 3
+      a.read >>= shouldEqual [[], [2], [3, 2]]

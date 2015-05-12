@@ -9,6 +9,7 @@ module FRP.Rabbit.Internal.Behavior
   -- , switchE
   -- , switch
   , keep
+  , collectE
   ) where
 
 import Control.Monad.Eff
@@ -189,6 +190,22 @@ collect f s0 ba = do
       let s' = f a s
       liftR $ writeRef sRef s'
       l s'
+
+collectE :: forall e a s. (a -> s -> s)
+            -> s
+            -> Event e a
+            -> ReactiveR e (Behavior e s)
+collectE f s0 ea = do
+  es <- newEvent
+  bs <- s0 `hold` es.event
+  sRef <-liftR $ newRef s0
+  listenTrans ea \a -> do
+    s <- liftR $ readRef sRef
+    let s' = f a s
+    liftR $ writeRef sRef s'
+    es.push s'
+    pure unit
+  pure bs
 
 accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
 accum a0 ef = do

@@ -13,7 +13,6 @@ module FRP.Rabbit
 import qualified FRP.Rabbit.Internal.Reactive as Reactive
 import qualified FRP.Rabbit.Internal.Behavior as Behavior
 import qualified FRP.Rabbit.Internal.Event as Event
-import qualified FRP.Rabbit.Internal.Sugar as Sugar
 import qualified FRP.Rabbit.Internal.Util as Util
 
 import Control.Monad.Eff
@@ -104,7 +103,7 @@ sample = Behavior.sample
 collectE :: forall e a b. (a -> b -> b) -> b ->
             Event e a ->
             ReactiveR e (Behavior e b)
-collectE = Sugar.collectE
+collectE = Behavior.collectE
 
 -- collect ::  forall e a b s. (a -> s -> (b, s)) -> s -> Behavior a -> Reactive (Behavior b)
 
