@@ -81,17 +81,15 @@ filterJust ea = Event $ \l ->
 once :: forall e a. Event e a -> Event e a
 once ea = Event $ \l -> do
   first <- liftR $ newRef true
-  unlistenerRef <- liftR $ newRef Nothing
+  unlistenerRef <- liftR $ newRef $ pure unit
   unlistener <- listenTrans ea \a -> do
     isFirst <- liftR $ readRef first
     if isFirst
       then do
         liftR $ writeRef first false
         l a
-      else liftR do
-        unlistener <- readRef unlistenerRef
-        maybe (pure unit) id unlistener
-  liftR $ writeRef unlistenerRef $ Just unlistener
+      else liftR $ join $ readRef unlistenerRef
+  liftR $ writeRef unlistenerRef $ unlistener
   pure unlistener
 
 filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
