@@ -174,3 +174,18 @@ gate ea bb = Event \l -> do
   pure do
     join $ readRef unlistenRef
     unlistenB
+
+collect :: forall e a s. (a -> s -> s)
+           -> s
+           -> Behavior e a
+           -> ReactiveR e (Behavior e s)
+collect f s0 ba = do
+  a0 <- sample ba
+  let s1 = (f a0 s0)
+  sRef <- liftR $ newRef s1
+  s1 `hold` Event \l ->
+    listenTrans (updates ba) \a -> do
+      s <- liftR $ readRef sRef
+      let s' = f a s
+      liftR $ writeRef sRef s'
+      l s'
