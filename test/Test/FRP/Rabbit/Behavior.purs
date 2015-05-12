@@ -124,3 +124,26 @@ behaviorSpec =
         unlisten <- listen (value r) a.record
         liftR $ unlisten
       a.read >>= shouldEqual []
+
+    it "snapshot" do
+      es <- sync $ newEvent
+      bs <- sync $ newBehavior 1
+      a <- newAggregator
+      sync $ listen (snapshot (\a b -> [a, b]) es.event bs.behavior) a.record
+
+      a.read >>= shouldEqual []
+
+      sync $ bs.push 2
+      a.read >>= shouldEqual []
+
+      sync $ es.push 3
+      a.read >>= shouldEqual [[3,2]]
+
+      sync $ es.push 4
+      a.read >>= shouldEqual [[3,2], [4,2]]
+
+      sync $ bs.push 5
+      a.read >>= shouldEqual [[3,2], [4,2]]
+
+      sync $ es.push 6
+      a.read >>= shouldEqual [[3,2], [4,2], [6,5]]

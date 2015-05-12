@@ -124,11 +124,14 @@ snapshot :: forall a b c. (a -> b -> c)
             -> Event _ a
             -> Behavior _ b
             -> (Event _ c)
-snapshot f ea bb = Event \l ->
-  listenTrans ea (\a -> do
+snapshot f ea bb = Event \l -> do
+  release <- keep bb
+  unlisten <- listenTrans ea (\a -> do
     b <- sample bb
     l $ f a b
   )
+  return do release
+            unlisten
 
 -- switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 -- switcherR r er = join (r `hold` er)
