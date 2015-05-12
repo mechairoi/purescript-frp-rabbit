@@ -18,14 +18,13 @@ listenB b = listen (value b)
 behaviorSpec =
   describe "behavior" do
     it "listenB -> push -> push " do
-      es <- sync $ newEvent
+      bs <- sync $ newBehavior 1
       a <- newAggregator
-      r <- sync $ 1 `hold` es.event
-      sync $ listenB r a.record
+      sync $ listenB bs.behavior a.record
       a.read >>= shouldEqual [1]
-      sync $ es.push 2
+      sync $ bs.push 2
       a.read >>= shouldEqual [1, 2]
-      sync $ es.push 3
+      sync $ bs.push 3
       a.read >>= shouldEqual [1, 2, 3]
 
     it "push -> listenB -> push -> push (invalid usage)" do
