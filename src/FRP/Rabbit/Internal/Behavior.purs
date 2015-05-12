@@ -32,10 +32,13 @@ newBehavior :: forall e a. a -> ReactiveR e { behavior :: (Behavior e a)
 newBehavior a = do es <- newEvent
                    pure { behavior : a `stepperR` es.event, push : es.push }
 
--- | `keep` activates the behavior.
--- | It returns the function to release.
+-- | `keep` the behavior as active.
+-- | This function returns the function to release.
 -- |
 -- | JavaScript has no weak reference. So we have to manage behaviors manually.
+-- | To prevent memory leak, `Behavior`s are activated only if one or more
+-- | listeners are exist. This function register dummy listener to `keep`
+-- | the behavior as active.
 keep :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 keep b = listen (value b) $ \_ -> pure unit
 
