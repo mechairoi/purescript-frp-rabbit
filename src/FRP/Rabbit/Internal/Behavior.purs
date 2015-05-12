@@ -146,3 +146,19 @@ switchE bea = Event \l -> do
   pure do
     readRef unlistenRef >>= maybe (pure unit) id
     unlistenB
+
+switch :: forall e a. Behavior e (Behavior e a) -> ReactiveR e (Behavior e a)
+switch bba = do
+  ba0 <- sample bba
+  a0 <- sample ba0
+  a0 `hold` Event \l -> do
+    ba0 <- sample bba
+    unlisten <- listenTrans (value ba0) l
+    unlistenRef <- liftR $ newRef unlisten
+    unlistenB <- listenTrans (updates bba) \ba -> do
+      liftR $ join $ readRef unlistenRef
+      unlisten <- listenTrans (value ba) l
+      liftR $ writeRef unlistenRef unlisten
+    pure do
+      join $ readRef unlistenRef
+      unlistenB
