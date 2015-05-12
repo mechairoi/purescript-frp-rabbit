@@ -35,10 +35,10 @@ newBehavior a = do es <- newEvent
 -- | `keep` the behavior as active.
 -- | This function returns the function to release.
 -- |
--- | JavaScript has no weak reference. So we have to manage behaviors manually.
--- | To prevent memory leak, `Behavior`s are activated only if one or more
--- | listeners are exist. This function register dummy listener to `keep`
--- | the behavior as active.
+-- | JavaScript has no weak reference. So we have to manually manage activity
+-- | of `Behavior`s. To prevent memory leak, `Behavior`s are activated only if
+-- | one or more listeners are exist (like reference counting). This function
+-- | simply registers a dummy no-op lisetener.
 keep :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 keep b = listen (value b) $ \_ -> pure unit
 
