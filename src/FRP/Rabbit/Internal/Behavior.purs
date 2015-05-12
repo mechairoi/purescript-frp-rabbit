@@ -163,3 +163,14 @@ switch bba = do
     pure do
       join $ readRef unlistenRef
       unlistenB
+
+gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
+gate ea bb = Event \l -> do
+  unlistenRef <- liftR $ newRef $ pure unit
+  unlistenB <- listenTrans (updates bb) \b -> do
+    liftR $ join $ readRef unlistenRef
+    unlisten <- if b then listenTrans ea l else pure (pure unit)
+    liftR $ writeRef unlistenRef unlisten
+  pure do
+    join $ readRef unlistenRef
+    unlistenB
