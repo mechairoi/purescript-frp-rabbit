@@ -138,13 +138,13 @@ snapshot f ea bb = Event \l -> do
 
 switchE :: forall e a. Behavior e (Event e a) -> Event e a
 switchE bea = Event \l -> do
-  unlistenRef <- liftR $ newRef Nothing
+  unlistenRef <- liftR $ newRef $ pure unit
   unlistenB <- listenTrans (value bea) \ea -> do
-    liftR $ readRef unlistenRef >>= maybe (pure unit) id
+    liftR $ join $ readRef unlistenRef
     unlisten <- listenTrans ea l
-    liftR $ writeRef unlistenRef $ Just unlisten
+    liftR $ writeRef unlistenRef $ unlisten
   pure do
-    readRef unlistenRef >>= maybe (pure unit) id
+    join $ readRef unlistenRef
     unlistenB
 
 switch :: forall e a. Behavior e (Behavior e a) -> ReactiveR e (Behavior e a)
