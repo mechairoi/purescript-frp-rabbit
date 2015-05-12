@@ -153,6 +153,7 @@ switch bba = do
   a0 <- sample ba0
   a0 `hold` Event \l -> do
     ba0 <- sample bba
+    -- XXX keep bba?
     unlisten <- listenTrans (value ba0) l
     unlistenRef <- liftR $ newRef unlisten
     unlistenB <- listenTrans (updates bba) \ba -> do
