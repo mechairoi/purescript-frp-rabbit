@@ -54,8 +54,8 @@ behaviorSpec =
       a <- newAggregator
       ra <- sync $ 1 `hold` esa.event
       rf <- sync $ (: [2]) `hold` esf.event
-      release <- sync $ keep ra
-      release <- sync $ keep rf
+      release <- sync $ retainB ra
+      release <- sync $ retainB rf
       sync $ listenB (rf <*> ra) a.record
       a.read >>= shouldEqual [[1, 2]]
       sync $ esa.push 2
@@ -73,7 +73,7 @@ behaviorSpec =
       a <- newAggregator
       rx <- sync $ 1 `hold` esx.event
       ry <- sync $ 1 `hold` esy.event
-      release <- sync $ keep ry
+      release <- sync $ retainB ry
       unlisten <- sync $ listenB (do
                          x <- rx
                          y <- ry
@@ -106,7 +106,7 @@ behaviorSpec =
       es <- sync $ newEvent
       a <- newAggregator
       r <- sync $ 1 `hold` es.event
-      release <- sync $ keep r
+      release <- sync $ retainB r
       sync $ listenB (do
         x <- r
         y <- r

@@ -8,7 +8,7 @@ module FRP.Rabbit.Internal.Behavior
   , snapshot
   -- , switchE
   -- , switch
-  , keep
+  , retainB
   , collectE
   ) where
 
@@ -34,10 +34,10 @@ newBehavior :: forall e a. a -> ReactiveR e { behavior :: (Behavior e a)
 newBehavior a = do es <- newEvent
                    pure { behavior : a `stepperR` es.event, push : es.push }
 
--- | Keep the behavior as active.
+-- | Keep the `Behavior` as active.
 -- | The `retainB` function returns the function to release.
 -- |
--- | Behavior version of `retain`
+-- | Same as `retain` except for Behaviors.
 retainB :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 retainB b = listen (value b) $ \_ -> pure unit
 
@@ -124,7 +124,7 @@ snapshot :: forall e a b c. (a -> b -> c)
             -> Behavior e b
             -> Event e c
 snapshot f ea bb = Event \l -> do
-  release <- keep bb
+  release <- retainB bb
   unlisten <- listenTrans ea (\a -> do
     b <- sample bb
     l $ f a b
@@ -152,7 +152,7 @@ switch bba = do
   a0 <- sample ba0
   a0 `hold` Event \l -> do
     ba0 <- sample bba
-    -- XXX keep bba?
+    -- XXX retainB bba?
     unlisten <- listenTrans (value ba0) l
     unlistenRef <- liftR $ newRef unlisten
     unlistenB <- listenTrans (updates bba) \ba -> do
