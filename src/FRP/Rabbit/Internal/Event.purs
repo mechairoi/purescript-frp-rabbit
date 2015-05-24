@@ -9,6 +9,9 @@ module FRP.Rabbit.Internal.Event
   , filterJust
   , once
   , filterE
+
+  , retain
+  , cache
   ) where
 
 import Control.Monad.Eff
@@ -122,3 +125,10 @@ once ea = Event $ \l -> do
 
 filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
 filterE pred ea = filterJust $ (\a -> if (pred a) then Just a else Nothing) <$> ea
+
+-- | TODO: test
+-- | The returning event is recommended to `retain`.
+cache :: forall e a. Event e a -> ReactiveR e (Event e a)
+cache ea = do
+  es <- newEventI \push -> listenTrans ea \a -> push a
+  pure es.event
