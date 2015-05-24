@@ -1,11 +1,12 @@
 module FRP.Rabbit
   ( Event(), Behavior()
-  , newEvent, listen, never, merge, filterJust
+  , newEvent, newBehavior
+  , listen
 
-  , newBehavior
-  , hold, updates, value, snapshot, switchE, switch, {- execute, -} sample
-  , {- coalesce, -} once, {- split, mergeWith, -} gate
-  , collectE, collect, accum
+  , never, merge, filterJust , hold, updates, value, snapshot, switchE, switch
+  {- , execute -}, sample {- , coalesce -}, once {- , split -}
+
+  {- mergeWith -}, filterE, gate, collectE, collect, accum
 
   , retain, retainB, cache
   ) where
@@ -52,6 +53,13 @@ newEvent = do
   pure { event: es.event
        , push: sync <<< es.push }
 
+newBehavior :: forall e a. a ->  Eff (ref :: Ref | e) { behavior :: Behavior e a
+                                                      , push :: a -> Eff (ref :: Ref | e) Unit }
+newBehavior a = do
+  bs <- sync $ Behavior.newBehavior a
+  pure { behavior: bs.behavior
+       , push: sync <<< bs.push }
+
 never :: forall e a. Event e a
 never = Event.never
 
@@ -60,13 +68,6 @@ merge = Event.merge
 
 filterJust :: forall e a. Event e (Maybe a) -> Event e a
 filterJust = Event.filterJust
-
-newBehavior :: forall e a. a ->  Eff (ref :: Ref | e) { behavior :: Behavior e a
-                                                      , push :: a -> Eff (ref :: Ref | e) Unit }
-newBehavior a = do
-  bs <- sync $ Behavior.newBehavior a
-  pure { behavior: bs.behavior
-       , push: sync <<< bs.push }
 
 hold :: forall e a. a -> Event e a -> Eff (ref :: Ref | e) (Behavior e a)
 hold a = sync <<< Behavior.hold a

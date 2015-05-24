@@ -4,6 +4,7 @@ module FRP.Rabbit.Internal.Event
   , newEventI
   , listen
   , listenTrans
+
   , never
   , merge
   , filterJust
@@ -26,34 +27,22 @@ import FRP.Rabbit.Internal.Reactive
 
 newtype Event e a = Event ((a -> (ReactiveR e Unit)) -> ReactiveR e (Eff (ref :: Ref | e) Unit))
 
+instance monoidEvent :: Monoid (Event e a) where
+  mempty = never
 
--- | Keep the event as active.
--- | The `retain` function returns the function to release.
--- |
--- | JavaScript has no weak reference. So we have to manually manage activity
--- | of `Event`s. To prevent memory leak, `Event`s are activated only if
--- | one or more listeners are exist (like reference counting). This function
--- | simply registers a dummy no-op lisetener.
-retain :: forall e a. Event e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
-retain ea = listen ea $ \_ -> pure unit
+instance functorEvent :: Functor (Event e) where
+  (<$>) f ea = Event $ \l -> listenTrans ea (f >>> l)
 
-listen :: forall e a. Event e a
-          -> Listener e a
-          -> ReactiveR e (Eff (ref :: Ref | e) Unit)
-listen ea listener = listenTrans ea $ \a -> Reactive $ pure { r: unit, after: listener a }
-
-listenTrans :: forall e a. Event e a
-               -> (a -> ReactiveR e Unit)
-               -> ReactiveR e (Eff (ref :: Ref | e) Unit)
-listenTrans (Event f) a = f a
+instance semigroupEvent :: Semigroup (Event e a) where
+  (<>) = merge
 
 newEvent :: forall e a. ReactiveR e { event :: Event e a
                                     , push :: a -> ReactiveR e Unit }
 newEvent = newEventI \push -> pure $ pure unit
 
 newEventI :: forall e a. ((a -> ReactiveR e Unit) -> ReactiveR e (Eff (ref :: Ref | e) Unit))
-             -> ReactiveR e { event :: Event e a
-                            , push :: a -> ReactiveR e Unit }
+          -> ReactiveR e { event :: Event e a
+                         , push :: a -> ReactiveR e Unit }
 newEventI activate = liftR $ do
   listenerRefsRef <- newRef []
   deactivateRef <- newRef $ return unit
@@ -85,17 +74,18 @@ newEventI activate = liftR $ do
             _  -> return unit
   pure { event: event, push: push }
 
-instance monoidEvent :: Monoid (Event e a) where
-  mempty = never
+listen :: forall e a. Event e a
+       -> Listener e a
+       -> ReactiveR e (Eff (ref :: Ref | e) Unit)
+listen ea listener = listenTrans ea $ \a -> Reactive $ pure { r: unit, after: listener a }
+
+listenTrans :: forall e a. Event e a
+            -> (a -> ReactiveR e Unit)
+            -> ReactiveR e (Eff (ref :: Ref | e) Unit)
+listenTrans (Event f) a = f a
 
 never :: forall e a. Event e a
 never = Event $ const $ pure $ pure unit
-
-instance functorEvent :: Functor (Event e) where
-  (<$>) f ea = Event $ \l -> listenTrans ea (f >>> l)
-
-instance semigroupEvent :: Semigroup (Event e a) where
-  (<>) = merge
 
 merge :: forall e a. Event e a -> Event e a -> Event e a
 merge ea eb = Event $ \l -> do
@@ -125,6 +115,16 @@ once ea = Event $ \l -> do
 
 filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
 filterE pred ea = filterJust $ (\a -> if (pred a) then Just a else Nothing) <$> ea
+
+-- | Keep the event as active.
+-- | The `retain` function returns the function to release.
+-- |
+-- | JavaScript has no weak reference. So we have to manually manage activity
+-- | of `Event`s. To prevent memory leak, `Event`s are activated only if
+-- | one or more listeners are exist (like reference counting). This function
+-- | simply registers a dummy no-op lisetener.
+retain :: forall e a. Event e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
+retain ea = listen ea $ \_ -> pure unit
 
 -- | TODO: test
 -- | The returning event is recommended to `retain`.
