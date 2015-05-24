@@ -6,10 +6,14 @@ module FRP.Rabbit.Internal.Behavior
   , updates
   , value
   , snapshot
-  -- , switchE
-  -- , switch
-  , retainB
+  , switchE
+  , switch
+  , gate
   , collectE
+  , collect
+  , accum
+
+  , retainB
   ) where
 
 import Control.Monad.Eff
@@ -29,8 +33,8 @@ newtype Behavior e a = Behavior { last :: (RefVal a)
                                 , deactivate :: RefVal (Eff (ref :: Ref | e) Unit) }
 
 -- | The returning behavior is recommended to `retainB`.
-newBehavior :: forall e a. a -> ReactiveR e { behavior :: (Behavior e a)
-                                            , push :: a -> (ReactiveR e Unit) }
+newBehavior :: forall e a. a -> ReactiveR e { behavior :: Behavior e a
+                                            , push :: a -> ReactiveR e Unit }
 newBehavior a = do es <- newEvent
                    pure { behavior : a `stepperR` es.event, push : es.push }
 
@@ -134,7 +138,7 @@ snapshot f ea bb = Event \l -> do
 
 -- switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 -- switcherR r er = join (r `hold` er)
-
+-- TODO: test
 switchE :: forall e a. Behavior e (Event e a) -> Event e a
 switchE bea = Event \l -> do
   unlistenRef <- liftR $ newRef $ pure unit
@@ -146,6 +150,7 @@ switchE bea = Event \l -> do
     join $ readRef unlistenRef
     unlistenB
 
+-- TODO: test
 switch :: forall e a. Behavior e (Behavior e a) -> ReactiveR e (Behavior e a)
 switch bba = do
   ba0 <- sample bba
@@ -163,6 +168,7 @@ switch bba = do
       join $ readRef unlistenRef
       unlistenB
 
+-- TODO: test
 gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
 gate ea bb = Event \l -> do
   unlistenRef <- liftR $ newRef $ pure unit
@@ -174,6 +180,7 @@ gate ea bb = Event \l -> do
     join $ readRef unlistenRef
     unlistenB
 
+-- TODO: test
 -- | The returning behavior is recommended to `retainB`.
 collect :: forall e a s. (a -> s -> s)
            -> s
@@ -191,6 +198,7 @@ collect f s0 ba = do
       push s'
   s1 `hold` es.event
 
+-- TODO: test
 -- | The returning behavior is recommended to `retainB`.
 collectE :: forall e a s. (a -> s -> s)
             -> s
@@ -207,6 +215,7 @@ collectE f s0 ea = do
   bs <- s0 `hold` es.event
   pure bs
 
+-- TODO: test
 -- | The returning behavior is recommended to `retainB`.
 accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
 accum a0 ef = do

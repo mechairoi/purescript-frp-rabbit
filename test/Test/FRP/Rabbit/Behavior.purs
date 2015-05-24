@@ -8,7 +8,7 @@ import FRP.Rabbit.Internal.Behavior
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Reactive
 
-import Test.Spec
+import Test.Spec (describe, it)
 import Test.Spec.Assertions
 
 import Test.FRP.Rabbit.Util

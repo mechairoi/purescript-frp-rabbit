@@ -1,29 +1,22 @@
 module FRP.Rabbit
-  ( Reactive(), ReactiveR(..)
-  , sync
-  , Event(), Behavior()
-  , listen, newEvent, never, merge, filterJust
-  -- , newBehavior
-  , hold, updates, value, {- snapshot, switchE, switch, execute, -} sample
-  -- , coalesce, once, split, mergeWith, filterE, gate
-  , collectE
-  -- , collect, accum
+  ( Event(), Behavior()
+  , newEvent, listen, never, merge, filterJust
+
+  , newBehavior
+  , hold, updates, value, snapshot, switchE, switch, {- execute, -} sample
+  , {- coalesce, -} once, {- split, mergeWith, -} gate
+  , collectE, collect, accum
+
+  , retain, retainB, cache
   ) where
 
-import qualified FRP.Rabbit.Internal.Reactive as Reactive
+import FRP.Rabbit.Internal.Reactive(sync)
 import qualified FRP.Rabbit.Internal.Behavior as Behavior
 import qualified FRP.Rabbit.Internal.Event as Event
-import qualified FRP.Rabbit.Internal.Util as Util
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import Data.Maybe
-
-type Reactive eff a = Reactive.Reactive eff a
-type ReactiveR e a = Reactive (ref :: Ref | e) a
-
-sync :: forall e a. Reactive e a -> Eff e a
-sync = Reactive.sync
 
 -- | The `listen` function registers a callback function for an `Event`.
 -- |
@@ -31,8 +24,8 @@ sync = Reactive.sync
 -- | `listen` can only subscribe future values to prevent memory leak.
 listen :: forall e a. Event e a
           -> (a -> Eff (ref :: Ref | e) Unit)
-          -> ReactiveR e (Eff (ref :: Ref | e) Unit)
-listen = Event.listen
+          -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
+listen ea = sync <<< Event.listen ea
 
 -- | The `Event eff a` type represents streams of timed values (discrete siganl).
 -- | It's a primitive of `FRP.Rabbit`.
@@ -52,8 +45,12 @@ type Behavior e a = Behavior.Behavior e a
 
 -- | The `newEvent` function create new pair of an `Event` and a push function.
 -- | The push function triggers a timed value for the event.
-newEvent :: forall e a. ReactiveR e { event :: Event e a, push :: a -> ReactiveR e Unit }
-newEvent = Event.newEvent
+newEvent :: forall e a. Eff (ref :: Ref | e) { event :: Event e a
+                                             , push :: a -> Eff (ref :: Ref | e) Unit }
+newEvent = do
+  es <- sync $ Event.newEvent
+  pure { event: es.event
+       , push: sync <<< es.push }
 
 never :: forall e a. Event e a
 never = Event.never
@@ -64,8 +61,15 @@ merge = Event.merge
 filterJust :: forall e a. Event e (Maybe a) -> Event e a
 filterJust = Event.filterJust
 
-hold :: forall e a. a -> Event e a -> ReactiveR e (Behavior e a)
-hold = Behavior.hold
+newBehavior :: forall e a. a ->  Eff (ref :: Ref | e) { behavior :: Behavior e a
+                                                      , push :: a -> Eff (ref :: Ref | e) Unit }
+newBehavior a = do
+  bs <- sync $ Behavior.newBehavior a
+  pure { behavior: bs.behavior
+       , push: sync <<< bs.push }
+
+hold :: forall e a. a -> Event e a -> Eff (ref :: Ref | e) (Behavior e a)
+hold a = sync <<< Behavior.hold a
 
 updates :: forall e a. Behavior e a -> Event e a
 updates = Behavior.updates
@@ -73,45 +77,49 @@ updates = Behavior.updates
 value :: forall e a. Behavior e a -> Event e a
 value = Behavior.value
 
--- snapshot :: forall e a. (a -> b -> c) -> Event e a -> Behavior e b -> Event e c
--- snapshot = Behavior.snapshot
+snapshot :: forall e a b c. (a -> b -> c) -> Event e a -> Behavior e b -> Event e c
+snapshot = Behavior.snapshot
 
--- switchE :: forall e a. Behavior e (Event e a) -> Event e a
--- switchE = Behavior.switchE
+switchE :: forall e a. Behavior e (Event e a) -> Event e a
+switchE = Behavior.switchE
 
--- switch :: forall e a. Behavior e (Behavior e a) -> Reactive e (Behavior e a)
--- switch = Behavior.switch
+switch :: forall e a. Behavior e (Behavior e a) -> Eff (ref :: Ref | e) (Behavior e a)
+switch = sync <<< Behavior.switch
 
--- execute :: forall e a. Event e (Reactive e a) -> Event e a
--- execute = Event.execute
+sample :: forall e a. Behavior e a -> Eff (ref :: Ref | e) a
+sample = sync <<< Behavior.sample
 
-sample :: forall e a. Behavior e a -> ReactiveR e a
-sample = Behavior.sample
+once :: forall e a. Event e a -> Event e a
+once = Event.once
 
--- coalesce :: forall e a. (a -> a -> a) -> Event e a -> Event e a
+filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
+filterE = Event.filterE
 
--- once :: forall e a. Event e a -> Event e a
+gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
+gate = Behavior.gate
 
--- split :: forall e a. Event e [a] -> Event e a
+collectE :: forall e a b. (a -> b -> b)
+         -> b
+         -> Event e a
+         -> Eff (ref :: Ref | e) (Behavior e b)
+collectE f b0 = sync <<< Behavior.collectE f b0
 
--- mergeWith :: forall e a. (a -> a -> a) -> Event e a -> Event e a -> Event e a
+collect :: forall e a s. (a -> s -> s)
+        -> s
+        -> Behavior e a
+        -> Eff (ref :: Ref | e) (Behavior e s)
+collect f s0 = sync <<< Behavior.collect f s0
 
--- filterE :: forall e a. (a -> Bool) -> Event e a -> Event e a
+accum :: forall e a. a
+      -> Event e (a -> a)
+      -> Eff (ref :: Ref | e) (Behavior e a)
+accum a0 = sync <<< Behavior.accum a0
 
--- gate :: forall e a. Event e a -> Behavior e Bool -> Event e a
+retain :: forall e a. Event e a -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
+retain = sync <<< Event.retain
 
-collectE :: forall e a b. (a -> b -> b) -> b ->
-            Event e a ->
-            ReactiveR e (Behavior e b)
-collectE = Behavior.collectE
+cache :: forall e a. Event e a -> Eff (ref :: Ref | e) (Event e a)
+cache = sync <<< Event.cache
 
--- collect ::  forall e a b s. (a -> s -> (b, s)) -> s -> Behavior a -> Reactive (Behavior b)
-
--- accum :: a -> Event (a -> a) -> Reactive (Behavior a)
-
-
--- | The `Listener a` type represents callback functions.
--- |
--- | `Listener` is often used by `sinkR` and `sinkE`.
--- | These function are register a callback.
-type Listener eff a = a -> Eff (ref :: Ref | eff) Unit
+retainB :: forall e a. Behavior e a -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
+retainB = sync <<< Behavior.retainB
