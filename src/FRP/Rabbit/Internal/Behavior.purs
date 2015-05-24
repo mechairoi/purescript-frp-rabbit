@@ -28,20 +28,18 @@ newtype Behavior e a = Behavior { last :: (RefVal a)
                                 , listenCounter :: (RefVal Int)
                                 , deactivate :: RefVal (Eff (ref :: Ref | e) Unit) }
 
+-- | The returning behavior is recommended to `retainB`.
 newBehavior :: forall e a. a -> ReactiveR e { behavior :: (Behavior e a)
                                             , push :: a -> (ReactiveR e Unit) }
 newBehavior a = do es <- newEvent
                    pure { behavior : a `stepperR` es.event, push : es.push }
 
--- | `keep` the behavior as active.
--- | This function returns the function to release.
+-- | Keep the behavior as active.
+-- | The `retainB` function returns the function to release.
 -- |
--- | JavaScript has no weak reference. So we have to manually manage activity
--- | of `Behavior`s. To prevent memory leak, `Behavior`s are activated only if
--- | one or more listeners are exist (like reference counting). This function
--- | simply registers a dummy no-op lisetener.
-keep :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
-keep b = listen (value b) $ \_ -> pure unit
+-- | Behavior version of `retain`
+retainB :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
+retainB b = listen (value b) $ \_ -> pure unit
 
 value :: forall e a. Behavior e a -> Event e a
 value ba = Event \listener -> do
@@ -176,6 +174,7 @@ gate ea bb = Event \l -> do
     join $ readRef unlistenRef
     unlistenB
 
+-- | The returning behavior is recommended to `retainB`.
 collect :: forall e a s. (a -> s -> s)
            -> s
            -> Behavior e a
@@ -184,35 +183,38 @@ collect f s0 ba = do
   a0 <- sample ba
   let s1 = (f a0 s0)
   sRef <- liftR $ newRef s1
-  s1 `hold` Event \l ->
+  es <- newEventI \push ->
     listenTrans (updates ba) \a -> do
       s <- liftR $ readRef sRef
       let s' = f a s
       liftR $ writeRef sRef s'
-      l s'
+      push s'
+  s1 `hold` es.event
 
+-- | The returning behavior is recommended to `retainB`.
 collectE :: forall e a s. (a -> s -> s)
             -> s
             -> Event e a
             -> ReactiveR e (Behavior e s)
 collectE f s0 ea = do
-  es <- newEvent
+  sRef <- liftR $ newRef s0
+  es <- newEventI \push ->
+    listenTrans ea \a -> do
+      s <- liftR $ readRef sRef
+      let s' = f a s
+      liftR $ writeRef sRef s'
+      push s'
   bs <- s0 `hold` es.event
-  sRef <-liftR $ newRef s0
-  listenTrans ea \a -> do
-    s <- liftR $ readRef sRef
-    let s' = f a s
-    liftR $ writeRef sRef s'
-    es.push s'
-    pure unit
   pure bs
 
+-- | The returning behavior is recommended to `retainB`.
 accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
 accum a0 ef = do
   aRef <- liftR $ newRef a0
-  a0 `hold` Event \l ->
+  es <- newEventI \push ->
     listenTrans ef \f -> do
       a <- liftR $ readRef aRef
       let a' = f a
       liftR $ writeRef aRef a'
-      l a'
+      push a'
+  a0 `hold` es.event
