@@ -66,7 +66,6 @@ instance bindBehavior :: Bind (Behavior e) where
 
 instance monadBehavior :: Monad (Behavior e)
 
--- | The returning behavior is recommended to `retainB`.
 newBehavior :: forall e a. a -> ReactiveR e { behavior :: Behavior e a
                                             , push :: a -> ReactiveR e Unit }
 newBehavior a = do es <- newEvent
@@ -121,7 +120,6 @@ snapshot f ea bb = Event \l -> do
   return do release
             unlisten
 
--- TODO: test
 switchE :: forall e a. Behavior e (Event e a) -> Event e a
 switchE bea = Event \l -> do
   unlistenRef <- liftR $ newRef $ pure unit
@@ -133,7 +131,6 @@ switchE bea = Event \l -> do
     join $ readRef unlistenRef
     unlistenB
 
--- TODO: test
 switch :: forall e a. Behavior e (Behavior e a) -> ReactiveR e (Behavior e a)
 switch bba = do
   ba0 <- sample bba
@@ -154,7 +151,6 @@ switch bba = do
 sample :: forall e a. Behavior e a -> ReactiveR e a
 sample (Behavior ba) = liftR $ readRef ba.last
 
--- TODO: test
 gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
 gate ea bb = Event \l -> do
   unlistenRef <- liftR $ newRef $ pure unit
@@ -166,8 +162,6 @@ gate ea bb = Event \l -> do
     join $ readRef unlistenRef
     unlistenB
 
--- TODO: test
--- | The returning behavior is recommended to `retainB`.
 collectE :: forall e a s. (a -> s -> s)
             -> s
             -> Event e a
@@ -183,8 +177,6 @@ collectE f s0 ea = do
   bs <- s0 `hold` es.event
   pure bs
 
--- TODO: test
--- | The returning behavior is recommended to `retainB`.
 collect :: forall e a s. (a -> s -> s)
            -> s
            -> Behavior e a
@@ -201,8 +193,6 @@ collect f s0 ba = do
       push s'
   s1 `hold` es.event
 
--- TODO: test
--- | The returning behavior is recommended to `retainB`.
 accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
 accum a0 ef = do
   aRef <- liftR $ newRef a0
@@ -214,10 +204,6 @@ accum a0 ef = do
       push a'
   a0 `hold` es.event
 
--- | Keep the `Behavior` as active.
--- | The `retainB` function returns the function to release.
--- |
--- | Same as `retain` except for Behaviors.
 retainB :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 retainB b = listen (value b) $ \_ -> pure unit
 

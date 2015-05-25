@@ -116,18 +116,9 @@ once ea = Event $ \l -> do
 filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
 filterE pred ea = filterJust $ (\a -> if (pred a) then Just a else Nothing) <$> ea
 
--- | Keep the event as active.
--- | The `retain` function returns the function to release.
--- |
--- | JavaScript has no weak reference. So we have to manually manage activity
--- | of `Event`s. To prevent memory leak, `Event`s are activated only if
--- | one or more listeners are exist (like reference counting). This function
--- | simply registers a dummy no-op lisetener.
 retain :: forall e a. Event e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 retain ea = listen ea $ \_ -> pure unit
 
--- | TODO: test
--- | The returning event is recommended to `retain`.
 cache :: forall e a. Event e a -> ReactiveR e (Event e a)
 cache ea = do
   es <- newEventI \push -> listenTrans ea \a -> push a

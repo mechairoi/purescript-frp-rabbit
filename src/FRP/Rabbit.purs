@@ -53,6 +53,7 @@ newEvent = do
   pure { event: es.event
        , push: sync <<< es.push }
 
+-- | The returning behavior is recommended to `retainB`.
 newBehavior :: forall e a. a ->  Eff (ref :: Ref | e) { behavior :: Behavior e a
                                                       , push :: a -> Eff (ref :: Ref | e) Unit }
 newBehavior a = do
@@ -99,28 +100,43 @@ filterE = Event.filterE
 gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
 gate = Behavior.gate
 
+-- | The returning behavior is recommended to `retainB`.
 collectE :: forall e a b. (a -> b -> b)
          -> b
          -> Event e a
          -> Eff (ref :: Ref | e) (Behavior e b)
 collectE f b0 = sync <<< Behavior.collectE f b0
 
+-- | The returning behavior is recommended to `retainB`.
 collect :: forall e a s. (a -> s -> s)
         -> s
         -> Behavior e a
         -> Eff (ref :: Ref | e) (Behavior e s)
 collect f s0 = sync <<< Behavior.collect f s0
 
+-- | The returning behavior is recommended to `retainB`.
 accum :: forall e a. a
       -> Event e (a -> a)
       -> Eff (ref :: Ref | e) (Behavior e a)
 accum a0 = sync <<< Behavior.accum a0
 
+-- | Keep the event as active.
+-- | The `retain` function returns the function to release.
+-- |
+-- | JavaScript has no weak reference. So we have to manually manage activity
+-- | of `Event`s. To prevent memory leak, `Event`s are activated only if
+-- | one or more listeners are exist (like reference counting). This function
+-- | simply registers a dummy no-op lisetener.
 retain :: forall e a. Event e a -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
 retain = sync <<< Event.retain
 
+-- | The returning event is recommended to `retain`.
 cache :: forall e a. Event e a -> Eff (ref :: Ref | e) (Event e a)
 cache = sync <<< Event.cache
 
+-- | Keep the `Behavior` as active.
+-- | The `retainB` function returns the function to release.
+-- |
+-- | Same as `retain` except for Behaviors.
 retainB :: forall e a. Behavior e a -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
 retainB = sync <<< Behavior.retainB
