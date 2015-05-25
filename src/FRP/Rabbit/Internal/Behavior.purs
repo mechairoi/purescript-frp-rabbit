@@ -144,15 +144,7 @@ collect f s0 ba = do
   s1 `hold` es.event
 
 accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
-accum a0 ef = do
-  aRef <- liftR $ newRef a0
-  es <- newEventI \push ->
-    listenTrans ef \f -> do
-      a <- liftR $ readRef aRef
-      let a' = f a
-      liftR $ writeRef aRef a'
-      push a'
-  a0 `hold` es.event
+accum a0 ef = collectE (\f a -> f a) a0 ef
 
 retainB :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 retainB b = listen (value b) $ \_ -> pure unit

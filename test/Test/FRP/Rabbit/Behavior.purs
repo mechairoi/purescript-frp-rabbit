@@ -238,3 +238,14 @@ behaviorSpec =
       a.read >>= shouldEqual [[0], [2, 0]]
       bs.push 3
       a.read >>= shouldEqual [[0], [2, 0], [3, 2, 0]]
+
+    it "accum" do
+      es <- newEvent
+      a <- newAggregator
+      r <- accum 0 es.event
+      listen (value r) a.record
+      a.read >>= shouldEqual [0]
+      es.push (+ 1)
+      a.read >>= shouldEqual [0, (0 + 1)]
+      es.push (+ 2)
+      a.read >>= shouldEqual [0, (0 + 1), (0 + 1 + 2)]
