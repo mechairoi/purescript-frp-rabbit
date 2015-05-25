@@ -195,6 +195,28 @@ behaviorSpec =
       release0
       release1
 
+    it "gate" do
+      a <- newAggregator
+      bs <- newBehavior false
+      es <- newEvent
+      listen (gate es.event bs.behavior) a.record
+      a.read >>= shouldEqual []
+
+      es.push 0
+      a.read >>= shouldEqual []
+
+      bs.push true
+      a.read >>= shouldEqual []
+
+      es.push 1
+      a.read >>= shouldEqual [1]
+
+      bs.push false
+      a.read >>= shouldEqual [1]
+
+      es.push 2
+      a.read >>= shouldEqual [1]
+
     it "collectE" do
       es <- newEvent
       a <- newAggregator
