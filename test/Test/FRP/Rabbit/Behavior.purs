@@ -137,6 +137,31 @@ behaviorSpec =
       es.push 6
       a.read >>= shouldEqual [[3,2], [4,2], [6,5]]
 
+    it "switchE" do
+      a <- newAggregator
+      es0 <- newEvent
+      es1 <- newEvent
+      bs <- newBehavior es0.event
+      listen (switchE bs.behavior) a.record
+
+      a.read >>= shouldEqual []
+
+      es0.push 0
+      es1.push 1
+      a.read >>= shouldEqual [0]
+
+      bs.push es1.event
+      a.read >>= shouldEqual [0]
+
+      es0.push 2
+      es1.push 3
+      a.read >>= shouldEqual [0, 3]
+
+      bs.push es0.event
+      es0.push 4
+      es1.push 5
+      a.read >>= shouldEqual [0, 3, 4]
+
     it "collectE" do
       es <- newEvent
       a <- newAggregator
