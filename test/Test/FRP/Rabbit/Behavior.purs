@@ -222,8 +222,19 @@ behaviorSpec =
       a <- newAggregator
       r <- collectE (\a b -> a : b) [] es.event
       listen (value r) a.record
-      -- a.read >>= shouldEqual [[]]
+      a.read >>= shouldEqual [[]]
       es.push 2
-      -- a.read >>= shouldEqual [[], [2]]
+      a.read >>= shouldEqual [[], [2]]
       es.push 3
       a.read >>= shouldEqual [[], [2], [3, 2]]
+
+    it "collect" do
+      bs <- newBehavior 0
+      a <- newAggregator
+      r <- collect (\a b -> a : b) [] bs.behavior
+      listen (value r) a.record
+      a.read >>= shouldEqual [[0]]
+      bs.push 2
+      a.read >>= shouldEqual [[0], [2, 0]]
+      bs.push 3
+      a.read >>= shouldEqual [[0], [2, 0], [3, 2, 0]]
