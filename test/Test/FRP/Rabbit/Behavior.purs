@@ -75,7 +75,7 @@ behaviorSpec =
       unlisten <- listenB (do
                          x <- rx
                          y <- ry
-                         pure $ [x, y]) a.record
+                         pure [x, y]) a.record
       a.read >>= shouldEqual [[1, 1]]
 
       esx.push 2
@@ -108,7 +108,7 @@ behaviorSpec =
       listenB (do
         x <- r
         y <- r
-        pure $ [x, y]) a.record
+        pure [x, y]) a.record
       a.read >>= shouldEqual [[1, 1]]
 
       es.push 2
@@ -170,7 +170,7 @@ behaviorSpec =
       release1 <- retainB bs1.behavior
       bbs <- newBehavior bs0.behavior
       b <- switch bbs.behavior
-      listen (value $ b) a.record
+      listen (value b) a.record
 
       a.read >>= shouldEqual [0]
 

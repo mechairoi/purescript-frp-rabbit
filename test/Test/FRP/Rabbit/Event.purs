@@ -96,7 +96,7 @@ eventSpec = do
       es.push $ Just 2
       a.read >>= shouldEqual [2]
 
-      es.push $ Nothing
+      es.push Nothing
       a.read >>= shouldEqual [2]
 
       es.push $ Just 3
@@ -117,13 +117,13 @@ eventSpec = do
       es <- newEvent
       let even = (\x -> x % 2 == 0)
       listen (filterE even es.event) a.record
-      es.push $ 2
+      es.push 2
       a.read >>= shouldEqual [2]
 
-      es.push $ 3
+      es.push 3
       a.read >>= shouldEqual [2]
 
-      es.push $ 4
+      es.push 4
       a.read >>= shouldEqual [2, 4]
 
     it "cache, retain" do
@@ -136,7 +136,7 @@ eventSpec = do
       ea <- cache ((\x -> unsafePerformEff do
                        a2.record x
                        pure $ x * 2) <$> es.event)
-      es.push $ 0
+      es.push 0
       a.read >>= shouldEqual [0]
       a2.read >>= shouldEqual []
       a3.read >>= shouldEqual []
@@ -145,14 +145,14 @@ eventSpec = do
       unlisten1 <- listen ea a3.record
       unlisten2 <- listen ea a4.record
 
-      es.push $ 1
+      es.push 1
       a.read >>= shouldEqual [0, 1]
       a2.read >>= shouldEqual [1]
       a3.read >>= shouldEqual [2]
       a4.read >>= shouldEqual [2]
 
       unlisten1
-      es.push $ 2
+      es.push 2
 
       a.read >>= shouldEqual [0, 1, 2]
       a2.read >>= shouldEqual [1, 2]
@@ -160,7 +160,7 @@ eventSpec = do
       a4.read >>= shouldEqual [2, 4]
 
       unlisten2
-      es.push $ 3
+      es.push 3
 
       a.read >>= shouldEqual [0, 1, 2, 3]
       a2.read >>= shouldEqual [1, 2]
@@ -168,7 +168,7 @@ eventSpec = do
       a4.read >>= shouldEqual [2, 4]
 
       retain ea
-      es.push $ 4
+      es.push 4
 
       a.read >>= shouldEqual [0, 1, 2, 3, 4]
       a2.read >>= shouldEqual [1, 2, 4]
@@ -186,14 +186,14 @@ eventSpec = do
       unlisten1 <- listen ea a2.record
       unlisten2 <- listen ea a3.record
 
-      es.push $ 0
+      es.push 0
       a.read >>= shouldEqual [0, 0]
       a2.read >>= shouldEqual [0]
       a3.read >>= shouldEqual [0]
 
       unlisten1
 
-      es.push $ 1
+      es.push 1
       a.read >>= shouldEqual [0, 0, 1]
       a2.read >>= shouldEqual [0]
       a3.read >>= shouldEqual [0, 2]

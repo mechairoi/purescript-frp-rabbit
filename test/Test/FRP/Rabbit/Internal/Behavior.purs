@@ -17,10 +17,10 @@ internalBehaviorSpec =
   describe "behavior internal" do
     pending "unlisten value in Reactive"
     -- it "unlisten value in Reactive" do
-    --   es <- sync $ newEvent
+    --   es <- sync newEvent
     --   a <- newAggregator
     --   r <- sync $ 1 `hold` es.event
-    --   sync $ do
+    --   sync do
     --     unlisten <- listen (value r) a.record
-    --     liftR $ unlisten
+    --     liftR unlisten
     --   a.read >>= shouldEqual []

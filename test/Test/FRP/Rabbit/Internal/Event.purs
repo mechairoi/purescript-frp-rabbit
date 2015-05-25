@@ -17,10 +17,10 @@ internalEventSpec = do
     it "unlisten in Reactive" do
       es <- sync $ newEvent
       a <- newAggregator
-      sync $ do
+      sync do
         unlisten <- listen es.event a.record
         es.push 2
-        liftR $ unlisten
+        liftR unlisten
       a.read >>= shouldEqual []
 
   describe "event loop" do
