@@ -1,5 +1,5 @@
 module FRP.Rabbit.Internal.Behavior
-  ( Behavior()
+  ( Behavior(..)
   , newBehavior
 
   , hold
@@ -16,14 +16,14 @@ module FRP.Rabbit.Internal.Behavior
   , accum
 
   , retainB
+
+  , stepperR
   ) where
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
-import Control.Monad.Cont.Trans
 import Control.Bind (join)
 import Data.Monoid
-import Data.Maybe
 import Data.Int
 import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Internal.Event
@@ -33,38 +33,6 @@ newtype Behavior e a = Behavior { last :: (RefVal a)
                                 , event :: (Event e a)
                                 , listenCounter :: (RefVal Int)
                                 , deactivate :: RefVal (Eff (ref :: Ref | e) Unit) }
-
-instance functorBehavior :: Functor (Behavior e) where
-  (<$>) f ma = ma >>= (pure <<< f)
-
-instance applicativeBehavior :: Applicative (Behavior e) where
-  pure a = Behavior { last: unsafePerformEff $ newRef a
-                    , event: (mempty :: Event e _)
-                    , listenCounter: unsafePerformEff $ newRef zero
-                    , deactivate: unsafePerformEff $ newRef $ pure unit
-                    }
-
-instance applyBehavior :: Apply (Behavior e) where
-  (<*>) uf ua = uf >>= (\f -> ua >>= (pure <<< f))
-
-instance bindBehavior :: Bind (Behavior e) where
-  (>>=) ba k = unsafePerformEff do
-    a0 <- sync $ sample ba
-    let bb0 = k a0
-    b0 <- sync $ sample $ bb0
-    pure $ b0 `stepperR` (Event \listener -> do
-                    unlistenerB <- listenTrans (updates $ bb0) listener
-                    unlistenerRef <- liftR $ newRef unlistenerB
-                    unlistenerA <- listenTrans (updates ba) (\a -> do
-                      liftR $ join $ readRef unlistenerRef
-                      unlistenerB <- listenTrans (value $ k a) listener
-                      liftR $ writeRef unlistenerRef $ unlistenerB
-                      pure unit)
-                    pure do
-                      join $ readRef unlistenerRef
-                      unlistenerA)
-
-instance monadBehavior :: Monad (Behavior e)
 
 newBehavior :: forall e a. a -> ReactiveR e { behavior :: Behavior e a
                                             , push :: a -> ReactiveR e Unit }
@@ -82,7 +50,7 @@ value ba = Event \listener -> do
   es <- newEvent
   activateB ba -- Only activates behavior if eixits listener to prevent memory leak.
   a0 <- sample ba
-  unlistener <- listenTrans (es.event <> updates ba) listener
+  unlistener <- listenTrans (es.event `merge` updates ba) listener
   es.push a0
   pure do
     unlistener

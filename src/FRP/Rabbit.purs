@@ -11,6 +11,7 @@ module FRP.Rabbit
   , retain, retainB, cache
   ) where
 
+import FRP.Rabbit.Class
 import FRP.Rabbit.Internal.Reactive(sync)
 import qualified FRP.Rabbit.Internal.Behavior as Behavior
 import qualified FRP.Rabbit.Internal.Event as Event

@@ -11,6 +11,7 @@ var gulp        = require('gulp')
 var paths = {
   src: 'src/**/*.purs',
   doc: 'MODULE.md',
+  docSrc: ['src/**/*.purs', '!src/**/Internal/**/*.purs' ],
   bowerSrc: 'bower_components/purescript-*/src/**/*.purs',
   dest: 'output',
   example: 'examples/*.purs',
@@ -55,7 +56,7 @@ gulp.task('example', ['example-make'], function() {
 });
 
 gulp.task('docs', function() {
-  return gulp.src(paths.src)
+  return gulp.src(paths.docSrc)
     .pipe(purescript.pscDocs())
     .pipe(gulp.dest(paths.doc));
 });

@@ -7,6 +7,7 @@ import Data.Maybe
 
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Reactive
+import FRP.Rabbit.Class
 
 import Test.Spec
 import Test.Spec.Assertions

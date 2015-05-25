@@ -13,12 +13,13 @@ module FRP.Rabbit.Internal.Event
 
   , retain
   , cache
+
+  , apE
   ) where
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import Control.Bind (join)
-import Data.Monoid
 import Data.Maybe
 import Data.Array (reverse)
 
@@ -26,15 +27,6 @@ import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Internal.Reactive
 
 newtype Event e a = Event ((a -> (ReactiveR e Unit)) -> ReactiveR e (Eff (ref :: Ref | e) Unit))
-
-instance monoidEvent :: Monoid (Event e a) where
-  mempty = never
-
-instance functorEvent :: Functor (Event e) where
-  (<$>) f ea = Event $ \l -> listenTrans ea (f >>> l)
-
-instance semigroupEvent :: Semigroup (Event e a) where
-  (<>) = merge
 
 newEvent :: forall e a. ReactiveR e { event :: Event e a
                                     , push :: a -> ReactiveR e Unit }
@@ -113,8 +105,10 @@ once ea = Event $ \l -> do
   liftR $ writeRef unlistenerRef $ unlistener
   pure unlistener
 
+apE f ea = Event $ \l -> listenTrans ea (f >>> l)
+
 filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
-filterE pred ea = filterJust $ (\a -> if (pred a) then Just a else Nothing) <$> ea
+filterE pred ea = filterJust $ (\a -> if (pred a) then Just a else Nothing) `apE` ea
 
 retain :: forall e a. Event e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
 retain ea = listen ea $ \_ -> pure unit
