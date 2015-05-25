@@ -24,20 +24,19 @@ instance functorBehavior :: Functor (Behavior e) where
 
 instance applicativeBehavior :: Applicative (Behavior e) where
   pure a = Behavior { last: unsafePerformEff $ newRef a
-                    , event: (mempty :: Event e _)
-                    , listenCounter: unsafePerformEff $ newRef zero
-                    , deactivate: unsafePerformEff $ newRef $ pure unit
+                    , updates: (mempty :: Event e _)
+                    , value_: (mempty :: Event e _)
                     }
 
 instance applyBehavior :: Apply (Behavior e) where
   (<*>) uf ua = uf >>= (\f -> ua >>= (pure <<< f))
 
 instance bindBehavior :: Bind (Behavior e) where
-  (>>=) ba k = unsafePerformEff do
-    a0 <- sync $ sample ba
+  (>>=) ba k = unsafePerformEff $ sync do
+    a0 <- sample ba
     let bb0 = k a0
-    b0 <- sync $ sample $ bb0
-    pure $ b0 `stepperR` (Event \listener -> do
+    b0 <- sample $ bb0
+    b0 `hold` (Event \listener -> do
                     unlistenerB <- listenTrans (updates $ bb0) listener
                     unlistenerRef <- liftR $ newRef unlistenerB
                     unlistenerA <- listenTrans (updates ba) (\a -> do

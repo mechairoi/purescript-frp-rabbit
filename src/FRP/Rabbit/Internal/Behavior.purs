@@ -15,8 +15,6 @@ module FRP.Rabbit.Internal.Behavior
   , accum
 
   , retainB
-
-  , stepperR
   ) where
 
 import Control.Monad.Eff
@@ -29,50 +27,36 @@ import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Reactive
 
 newtype Behavior e a = Behavior { last :: (RefVal a)
-                                , event :: (Event e a)
-                                , listenCounter :: (RefVal Int)
-                                , deactivate :: RefVal (Eff (ref :: Ref | e) Unit) }
+                                , updates :: (Event e a)
+                                , value_ :: (Event e a) }
 
 newBehavior :: forall e a. a -> ReactiveR e { behavior :: Behavior e a
                                             , push :: a -> ReactiveR e Unit }
 newBehavior a = do es <- newEvent
-                   pure { behavior : a `stepperR` es.event, push : es.push }
+                   behavior <- a `hold` es.event
+                   pure { behavior: behavior, push: es.push }
 
 hold :: forall a e. a -> Event e a -> ReactiveR e (Behavior e a)
-hold a e = pure $ a `stepperR` e
+hold a0 e = do
+  last <- liftR $ newRef a0
+  es <- newEventI(\push -> listenTrans e \a -> do
+                     liftR $ writeRef last a
+                     push a)
+  pure $ Behavior { last: last
+                  , updates: e
+                  , value_: es.event }
 
 updates :: forall e a. Behavior e a -> Event e a
-updates (Behavior b) = b.event
+updates (Behavior b) = b.updates
+
+value_ :: forall e a. Behavior e a -> Event e a
+value_ (Behavior b) = b.value_
 
 value :: forall e a. Behavior e a -> Event e a
 value ba = Event \listener -> do
-  es <- newEvent
-  activateB ba -- Only activates behavior if eixits listener to prevent memory leak.
   a0 <- sample ba
-  unlistener <- listenTrans (es.event `merge` updates ba) listener
-  es.push a0
-  pure do
-    unlistener
-    deactivateB ba
-  where
-    deactivateB (Behavior b) = do
-      c <- readRef b.listenCounter
-      modifyRef b.listenCounter (\x -> x - one)
-      if c == zero
-        then do
-          join $ readRef b.deactivate
-          writeRef b.deactivate $ pure unit
-        else pure unit
-    activateB (Behavior b) = do
-      c <- liftR $ readRef b.listenCounter
-      if c == zero
-        then do
-          unlisten <- listenTrans b.event $
-                      (\a' -> do liftR $ writeRef b.last a'
-                                 pure unit)
-          liftR $ writeRef b.deactivate unlisten
-        else pure unit
-      liftR $ modifyRef b.listenCounter (one +)
+  listener a0
+  listenTrans (value_ ba) listener
 
 snapshot :: forall e a b c. (a -> b -> c)
             -> Event e a
@@ -147,14 +131,7 @@ accum :: forall e a. a -> Event e (a -> a) -> ReactiveR e (Behavior e a)
 accum a0 ef = collectE (\f a -> f a) a0 ef
 
 retainB :: forall e a. Behavior e a -> ReactiveR e (Eff (ref :: Ref | e) Unit)
-retainB b = listen (value b) $ \_ -> pure unit
-
-stepperR :: forall a e. a -> Event e a -> Behavior e a
-stepperR a e = Behavior { last: unsafePerformEff $ newRef a
-                        , event: e
-                        , listenCounter: unsafePerformEff $ newRef zero
-                        , deactivate: unsafePerformEff $ newRef $ pure unit
-                        }
+retainB b = retain $ value_ b
 
 -- switcherR :: forall a e. Behavior e a -> Event e (Behavior e a) -> Behavior e a
 -- switcherR r er = join (r `hold` er)
