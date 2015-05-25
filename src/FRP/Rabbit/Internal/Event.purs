@@ -61,6 +61,7 @@ newEventI activate = liftR $ do
         pure $ do -- unlistener
           modifyRef listenerRefsRef $ removeOnce (listenerRef ==)
           writeRef listenerRef Nothing
+          refs <- readRef listenerRefsRef
           case refs of
             [] -> join $ readRef deactivateRef
             _  -> return unit
