@@ -99,16 +99,6 @@ eventSpec = do
         liftR $ unlisten
       a.read >>= shouldEqual []
 
-    it "once" do
-      a <- newAggregator
-      es <- sync $ newEvent
-      sync $ listen (once es.event) a.record
-      sync $ es.push 2
-      a.read >>= shouldEqual [2]
-
-      sync $ es.push 3
-      a.read >>= shouldEqual [2]
-
     it "filterJust" do
       a <- newAggregator
       es <- sync $ newEvent
@@ -121,6 +111,16 @@ eventSpec = do
 
       sync $ es.push $ Just 3
       a.read >>= shouldEqual [2, 3]
+
+    it "once" do
+      a <- newAggregator
+      es <- sync $ newEvent
+      sync $ listen (once es.event) a.record
+      sync $ es.push 2
+      a.read >>= shouldEqual [2]
+
+      sync $ es.push 3
+      a.read >>= shouldEqual [2]
 
     it "filterE" do
       a <- newAggregator
