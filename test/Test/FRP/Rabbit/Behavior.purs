@@ -162,6 +162,39 @@ behaviorSpec =
       es1.push 5
       a.read >>= shouldEqual [0, 3, 4]
 
+    it "switch" do
+      a <- newAggregator
+      bs0 <- newBehavior 0
+      bs1 <- newBehavior 1
+      release0 <- retainB bs0.behavior
+      release1 <- retainB bs1.behavior
+      bbs <- newBehavior bs0.behavior
+      b <- switch bbs.behavior
+      listen (value $ b) a.record
+
+      a.read >>= shouldEqual [0]
+
+      bs0.push 2
+      bs1.push 3
+      a.read >>= shouldEqual [0, 2]
+
+      bbs.push bs1.behavior
+      a.read >>= shouldEqual [0, 2, 3]
+
+      bs0.push 4
+      bs1.push 5
+      a.read >>= shouldEqual [0, 2, 3, 5]
+
+      bbs.push bs0.behavior
+      a.read >>= shouldEqual [0, 2, 3, 5, 4]
+
+      bs0.push 6
+      bs1.push 7
+      a.read >>= shouldEqual [0, 2, 3, 5, 4, 6]
+
+      release0
+      release1
+
     it "collectE" do
       es <- newEvent
       a <- newAggregator

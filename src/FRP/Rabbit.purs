@@ -18,6 +18,7 @@ import qualified FRP.Rabbit.Internal.Event as Event
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
+import Control.Bind (join)
 import Data.Maybe
 
 -- | The `listen` function registers a callback function for an `Event`.
@@ -87,7 +88,7 @@ switchE :: forall e a. Behavior e (Event e a) -> Event e a
 switchE = Behavior.switchE
 
 switch :: forall e a. Behavior e (Behavior e a) -> Eff (ref :: Ref | e) (Behavior e a)
-switch = sync <<< Behavior.switch
+switch = pure <<< join
 
 sample :: forall e a. Behavior e a -> Eff (ref :: Ref | e) a
 sample = sync <<< Behavior.sample

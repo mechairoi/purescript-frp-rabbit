@@ -7,7 +7,6 @@ module FRP.Rabbit.Internal.Behavior
   , value
   , snapshot
   , switchE
-  , switch
   , sample
 
   , gate
@@ -98,23 +97,6 @@ switchE bea = Event \l -> do
   pure do
     join $ readRef unlistenRef
     unlistenB
-
-switch :: forall e a. Behavior e (Behavior e a) -> ReactiveR e (Behavior e a)
-switch bba = do
-  ba0 <- sample bba
-  a0 <- sample ba0
-  a0 `hold` Event \l -> do
-    ba0 <- sample bba
-    -- XXX retainB bba?
-    unlisten <- listenTrans (value ba0) l
-    unlistenRef <- liftR $ newRef unlisten
-    unlistenB <- listenTrans (updates bba) \ba -> do
-      liftR $ join $ readRef unlistenRef
-      unlisten <- listenTrans (value ba) l
-      liftR $ writeRef unlistenRef unlisten
-    pure do
-      join $ readRef unlistenRef
-      unlistenB
 
 sample :: forall e a. Behavior e a -> ReactiveR e a
 sample (Behavior ba) = liftR $ readRef ba.last
