@@ -2,24 +2,10 @@
 
 ## Module FRP.Rabbit
 
-#### `Reactive`
-
-``` purescript
-type Reactive eff a = Reactive.Reactive eff a
-```
-
-
-#### `sync`
-
-``` purescript
-sync :: forall e a. Reactive e a -> Eff (ref :: Ref | e) a
-```
-
-
 #### `listen`
 
 ``` purescript
-listen :: forall e a. Event e a -> (a -> Eff (ref :: Ref | e) Unit) -> Reactive e (Eff (ref :: Ref | e) Unit)
+listen :: forall e a. Event e a -> (a -> Eff (ref :: Ref | e) Unit) -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
 ```
 
 The `listen` function registers a callback function for an `Event`.
@@ -56,11 +42,19 @@ These timed values are inhabitants of _a_.
 #### `newEvent`
 
 ``` purescript
-newEvent :: forall e a. Reactive e { push :: a -> Reactive e Unit, event :: Event e a }
+newEvent :: forall e a. Eff (ref :: Ref | e) { push :: a -> Eff (ref :: Ref | e) Unit, event :: Event e a }
 ```
 
 The `newEvent` function create new pair of an `Event` and a push function.
 The push function triggers a timed value for the event.
+
+#### `newBehavior`
+
+``` purescript
+newBehavior :: forall e a. a -> Eff (ref :: Ref | e) { push :: a -> Eff (ref :: Ref | e) Unit, behavior :: Behavior e a }
+```
+
+The returning behavior is recommended to `retainB`.
 
 #### `never`
 
@@ -86,7 +80,7 @@ filterJust :: forall e a. Event e (Maybe a) -> Event e a
 #### `hold`
 
 ``` purescript
-hold :: forall e a. a -> Event e a -> Reactive e (Behavior e a)
+hold :: forall e a. a -> Event e a -> Eff (ref :: Ref | e) (Behavior e a)
 ```
 
 
@@ -101,52 +95,136 @@ updates :: forall e a. Behavior e a -> Event e a
 
 ``` purescript
 value :: forall e a. Behavior e a -> Event e a
+```
+
+
+#### `snapshot`
+
+``` purescript
+snapshot :: forall e a b c. (a -> b -> c) -> Event e a -> Behavior e b -> Event e c
+```
+
+
+#### `switchE`
+
+``` purescript
+switchE :: forall e a. Behavior e (Event e a) -> Event e a
+```
+
+
+#### `switch`
+
+``` purescript
+switch :: forall e a. Behavior e (Behavior e a) -> Eff (ref :: Ref | e) (Behavior e a)
 ```
 
 
 #### `sample`
 
 ``` purescript
-sample :: forall e a. Behavior e a -> Reactive e a
+sample :: forall e a. Behavior e a -> Eff (ref :: Ref | e) a
 ```
+
+
+#### `once`
+
+``` purescript
+once :: forall e a. Event e a -> Event e a
+```
+
+
+#### `filterE`
+
+``` purescript
+filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
+```
+
+
+#### `gate`
+
+``` purescript
+gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
+```
+
 
 #### `collectE`
 
 ``` purescript
-collectE :: forall e a b. (a -> b -> b) -> b -> Event e a -> Reactive e (Behavior e b)
+collectE :: forall e a b. (a -> b -> b) -> b -> Event e a -> Eff (ref :: Ref | e) (Behavior e b)
+```
+
+The returning behavior is recommended to `retainB`.
+
+#### `collect`
+
+``` purescript
+collect :: forall e a s. (a -> s -> s) -> s -> Behavior e a -> Eff (ref :: Ref | e) (Behavior e s)
+```
+
+The returning behavior is recommended to `retainB`.
+
+#### `accum`
+
+``` purescript
+accum :: forall e a. a -> Event e (a -> a) -> Eff (ref :: Ref | e) (Behavior e a)
+```
+
+The returning behavior is recommended to `retainB`.
+
+#### `retain`
+
+``` purescript
+retain :: forall e a. Event e a -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
+```
+
+Keep the event as active.
+The `retain` function returns the function to release.
+
+JavaScript has no weak reference. So we have to manually manage activity
+of `Event`s. To prevent memory leak, `Event`s are activated only if
+one or more listeners are exist (like reference counting). This function
+simply registers a dummy no-op lisetener.
+
+#### `cache`
+
+``` purescript
+cache :: forall e a. Event e a -> Eff (ref :: Ref | e) (Event e a)
+```
+
+The returning event is recommended to `retain`.
+
+#### `retainB`
+
+``` purescript
+retainB :: forall e a. Behavior e a -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
+```
+
+Keep the `Behavior` as active.
+The `retainB` function returns the function to release.
+
+Same as `retain` except for Behaviors.
+
+
+## Module FRP.Rabbit.Class
+
+#### `monoidEvent`
+
+``` purescript
+instance monoidEvent :: Monoid (Event e a)
 ```
 
 
-## Module FRP.Rabbit.VirtualDOM
-
-#### `runBehaviorVTree`
+#### `functorEvent`
 
 ``` purescript
-runBehaviorVTree :: forall e. Behavior (dom :: DOM | e) VTree -> WithRef (dom :: DOM | e) DOM.Node
+instance functorEvent :: Functor (Event e)
 ```
 
 
-
-## Module FRP.Rabbit.Internal.Behavior
-
-#### `Behavior`
+#### `semigroupEvent`
 
 ``` purescript
-newtype Behavior e a
-```
-
-
-#### `value`
-
-``` purescript
-value :: forall e a. Behavior e a -> Event e a
-```
-
-
-#### `updates`
-
-``` purescript
-updates :: forall e a. Behavior e a -> Event e a
+instance semigroupEvent :: Semigroup (Event e a)
 ```
 
 
@@ -178,13 +256,6 @@ instance bindBehavior :: Bind (Behavior e)
 ```
 
 
-#### `sample`
-
-``` purescript
-sample :: forall e a. Behavior e a -> Reactive e a
-```
-
-
 #### `monadBehavior`
 
 ``` purescript
@@ -192,211 +263,13 @@ instance monadBehavior :: Monad (Behavior e)
 ```
 
 
-#### `hold`
+
+## Module FRP.Rabbit.VirtualDOM
+
+#### `runBehaviorVTree`
 
 ``` purescript
-hold :: forall a e. a -> Event e a -> Reactive e (Behavior e a)
-```
-
-
-
-## Module FRP.Rabbit.Internal.Event
-
-#### `Event`
-
-``` purescript
-newtype Event e a
-  = Event (ContT (Eff (ref :: Ref | e) Unit) (Eff (ref :: Ref | e)) a)
-```
-
-
-#### `listen`
-
-``` purescript
-listen :: forall e a. Event e a -> Listener e a -> Reactive e (Unlistener e)
-```
-
-#### `listenI`
-
-``` purescript
-listenI :: forall e a. Event e a -> ListenerI e a -> Reactive e (Unlistener e)
-```
-
-#### `newEvent`
-
-``` purescript
-newEvent :: forall e a. Reactive e { push :: a -> Reactive e Unit, event :: Event e a }
-```
-
-
-#### `monoidEvent`
-
-``` purescript
-instance monoidEvent :: Monoid (Event e a)
-```
-
-
-#### `never`
-
-``` purescript
-never :: forall e a. Event e a
-```
-
-
-#### `functorEvent`
-
-``` purescript
-instance functorEvent :: Functor (Event e)
-```
-
-
-#### `semigroupEvent`
-
-``` purescript
-instance semigroupEvent :: Semigroup (Event e a)
-```
-
-
-#### `merge`
-
-``` purescript
-merge :: forall e a. Event e a -> Event e a -> Event e a
-```
-
-
-#### `filterJust`
-
-``` purescript
-filterJust :: forall e a. Event e (Maybe a) -> Event e a
-```
-
-
-
-## Module FRP.Rabbit.Internal.Reactive
-
-#### `Reactive`
-
-``` purescript
-newtype Reactive e a
-  = Reactive (Eff (ref :: Ref | e) a)
-```
-
-
-#### `sync`
-
-``` purescript
-sync :: forall e a. Reactive e a -> Eff (ref :: Ref | e) a
-```
-
-
-#### `functorReactive`
-
-``` purescript
-instance functorReactive :: Functor (Reactive e)
-```
-
-
-#### `applicativeReactive`
-
-``` purescript
-instance applicativeReactive :: Applicative (Reactive e)
-```
-
-
-#### `applyReactive`
-
-``` purescript
-instance applyReactive :: Apply (Reactive e)
-```
-
-
-#### `bindReactive`
-
-``` purescript
-instance bindReactive :: Bind (Reactive e)
-```
-
-
-#### `monadReactive`
-
-``` purescript
-instance monadReactive :: Monad (Reactive e)
-```
-
-
-
-## Module FRP.Rabbit.Internal.Sugar
-
-#### `collectE`
-
-``` purescript
-collectE :: forall e a b. (a -> b -> b) -> b -> Event e a -> Reactive e (Behavior e b)
-```
-
-
-
-## Module FRP.Rabbit.Internal.Util
-
-#### `WithRef`
-
-``` purescript
-type WithRef eff a = Eff (ref :: Ref | eff) a
-```
-
-
-#### `ListenerI`
-
-``` purescript
-type ListenerI eff a = a -> WithRef eff (WithRef eff Unit)
-```
-
-
-#### `Listener`
-
-``` purescript
-type Listener eff a = a -> WithRef eff Unit
-```
-
-
-#### `Unlistener`
-
-``` purescript
-type Unlistener eff = WithRef eff Unit
-```
-
-
-#### `unsafeCoerce`
-
-``` purescript
-unsafeCoerce :: forall a b. a -> b
-```
-
-
-#### `unsafePerformEff`
-
-``` purescript
-unsafePerformEff :: forall e a. Eff e a -> a
-```
-
-
-#### `eqRef`
-
-``` purescript
-eqRef :: forall a. RefVal a -> RefVal a -> Boolean
-```
-
-
-#### `eqRefVal`
-
-``` purescript
-instance eqRefVal :: Eq (RefVal a)
-```
-
-
-#### `removeOnce`
-
-``` purescript
-removeOnce :: forall a. (a -> Boolean) -> [a] -> [a]
+runBehaviorVTree :: forall e. Behavior (dom :: DOM | e) VTree -> WithRef (dom :: DOM | e) DOM.Node
 ```
 
 
