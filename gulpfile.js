@@ -30,10 +30,10 @@ gulp.task('test-make', function() {
 });
 
 gulp.task('test', ['test-make'], function() {
-  var env = {}
+  var env = {};
   for (var e in process.env) env[e] = process.env[e];
   env.NODE_PATH = 'output';
-  run('node -e "require(\'Test.Main\').main();"', { 'env': env }).exec()
+  run('node -e "require(\'Test.Main\').main();"', { 'env': env }).exec();
 });
 
 gulp.task('example-make', function() {
