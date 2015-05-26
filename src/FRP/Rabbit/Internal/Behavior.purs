@@ -21,7 +21,6 @@ import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import Control.Bind (join)
 import Data.Monoid
-import Data.Int
 import FRP.Rabbit.Internal.Util
 import FRP.Rabbit.Internal.Event
 import FRP.Rabbit.Internal.Reactive
