@@ -40,14 +40,14 @@ increment state = state { counter = state.counter + 1 }
 
 rootVNode :: Eff _ (Behavior _ VTree)
 rootVNode = do
-  es <- newEventWithSource
-  state <- stateful (\e state -> increment state) initialState es.event
+  es <- newEvent
+  state <- collectE (\e state -> increment state) initialState es.event
   return $ do
     s <- state
     return $ vnode "div" []
       [ vnode "p" [] [ vtext $ show s.counter ] Nothing Nothing
       , vnode "button"
-          [ handler "onclick" es.source ]
+          [ handler "onclick" es.push ]
           [ vtext "++" ]
           Nothing Nothing
       ] Nothing Nothing
