@@ -8,6 +8,8 @@ module FRP.Rabbit
 
   {- mergeWith -}, filterE, gate, collectE, collect, accum
 
+  , executeEff
+
   , retain, retainB, cache
   ) where
 
@@ -15,6 +17,7 @@ import FRP.Rabbit.Class
 import FRP.Rabbit.Internal.Reactive(sync)
 import qualified FRP.Rabbit.Internal.Behavior as Behavior
 import qualified FRP.Rabbit.Internal.Event as Event
+import qualified FRP.Rabbit.Internal.Eff as Eff
 
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
@@ -121,6 +124,10 @@ accum :: forall e a. a
       -> Event e (a -> a)
       -> Eff (ref :: Ref | e) (Behavior e a)
 accum a0 = sync <<< Behavior.accum a0
+
+executeEff :: forall e a. Event e (Eff (ref :: Ref | e) a)
+           -> Eff (ref :: Ref | e) (Event e a)
+executeEff = sync <<< Eff.executeEff
 
 -- | Keep the event as active.
 -- | The `retain` function returns the function to release.
