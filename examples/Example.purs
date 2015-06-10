@@ -7,7 +7,6 @@ import DOM
 import VirtualDOM.VTree
 import FRP.Rabbit.VirtualDOM (runBehaviorVTree)
 import FRP.Rabbit
-import Data.Foreign
 
 main = windowOnLoad $ do
   rootVNode >>= runBehaviorVTree >>= documentBodyAppendChild
@@ -50,10 +49,11 @@ rootVNode = do
       , vnode "button" { "onclick": handlerWrapper es.push } [ vtext "++" ]
       ]
 
+foreign import data Handler :: *
 foreign import handlerWrapper """
   function handlerWrapper(handler) {
     return function(event) {
       handler(event)();
     };
   }
-  """ :: forall eff a. (a -> Eff eff Unit) -> Foreign
+  """ :: forall eff a. (a -> Eff eff Unit) -> Handler
