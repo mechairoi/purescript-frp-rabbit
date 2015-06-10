@@ -4,9 +4,10 @@ import Data.Maybe
 import Control.Monad.Eff
 import Control.Monad.Eff.Ref
 import DOM
-import VirtualDOM.VTree.Typed
+import VirtualDOM.VTree
 import FRP.Rabbit.VirtualDOM (runBehaviorVTree)
 import FRP.Rabbit
+import Data.Foreign
 
 main = windowOnLoad $ do
   rootVNode >>= runBehaviorVTree >>= documentBodyAppendChild
@@ -44,10 +45,15 @@ rootVNode = do
   state <- collectE (\e state -> increment state) initialState es.event
   return $ do
     s <- state
-    return $ vnode "div" []
-      [ vnode "p" [] [ vtext $ show s.counter ] Nothing Nothing
-      , vnode "button"
-          [ handler "onclick" es.push ]
-          [ vtext "++" ]
-          Nothing Nothing
-      ] Nothing Nothing
+    return $ vnode "div" {}
+      [ vnode "p" {} [ vtext $ show s.counter ]
+      , vnode "button" { "onclick": handlerWrapper es.push } [ vtext "++" ]
+      ]
+
+foreign import handlerWrapper """
+  function handlerWrapper(handler) {
+    return function(event) {
+      handler(event)();
+    };
+  }
+  """ :: forall eff a. (a -> Eff eff Unit) -> Foreign
