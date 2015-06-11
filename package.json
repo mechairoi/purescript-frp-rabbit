@@ -1,6 +1,6 @@
 {
   "name": "purescript-frp-rabbit",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A FRP framework for PureScript",
   "dependencies": {
     "gulp-run": "^1.6.7",

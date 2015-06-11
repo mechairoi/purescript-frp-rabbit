@@ -1,6 +1,6 @@
 {
   "name": "purescript-frp-rabbit",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "homepage": "https://github.com/mechairoi/purescript-frp-rabbit",
   "authors": [
     "mechairoi <ttsujikawa@gmail.com>"
