@@ -79,6 +79,7 @@ filterJust = Event.filterJust
 
 -- | Create a behavior with the specified initial value, that gets
 -- | updated by the values coming through the event.
+-- | The returning behavior is recommended to `retainB`.
 hold :: forall e a. a -> Event e a -> Eff (ref :: Ref | e) (Behavior e a)
 hold a = sync <<< Behavior.hold a
 

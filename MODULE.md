@@ -2,25 +2,13 @@
 
 ## Module FRP.Rabbit
 
-#### `listen`
-
-``` purescript
-listen :: forall e a. Event e a -> (a -> Eff (ref :: Ref | e) Unit) -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
-```
-
-The `listen` function registers a callback function for an `Event`.
-
-It's like `.addEventListener()` or subscribe an observable.
-`listen` can only subscribe future values to prevent memory leak.
-
 #### `Event`
 
 ``` purescript
 type Event eff a = Event.Event eff a
 ```
 
-The `Event eff a` type represents streams of timed values (discrete siganl).
-It's a primitive of `FRP.Rabbit`.
+A stream of events (discrete siganl).
 
 These timed values are inhabitants of _a_.
 `Event` is an instance of `Monoid` and `Functor`.
@@ -31,9 +19,8 @@ These timed values are inhabitants of _a_.
 type Behavior e a = Behavior.Behavior e a
 ```
 
-The `Behavior eff a` type represents streams of timed values,
-but semantically it is continuous time function whose value is the last timed value at the thme.
-It's a primitive of `FRP.Rabbit`.
+A s time-varying value.
+It semantically represents continuous time function whose value is the last timed value at the time.
 
 `Behavior` has current value and an `Event` represents future values.
 These timed values are inhabitants of _a_.
@@ -45,8 +32,7 @@ These timed values are inhabitants of _a_.
 newEvent :: forall e a. Eff (ref :: Ref | e) { push :: a -> Eff (ref :: Ref | e) Unit, event :: Event e a }
 ```
 
-The `newEvent` function create new pair of an `Event` and a push function.
-The push function triggers a timed value for the event.
+Returns an event, and a push action for pushing a value into the event.
 
 #### `newBehavior`
 
@@ -54,7 +40,18 @@ The push function triggers a timed value for the event.
 newBehavior :: forall e a. a -> Eff (ref :: Ref | e) { push :: a -> Eff (ref :: Ref | e) Unit, behavior :: Behavior e a }
 ```
 
+Create a new Behavior along with an action to push changes into it.
 The returning behavior is recommended to `retainB`.
+
+#### `listen`
+
+``` purescript
+listen :: forall e a. Event e a -> (a -> Eff (ref :: Ref | e) Unit) -> Eff (ref :: Ref | e) (Eff (ref :: Ref | e) Unit)
+```
+
+Listen for firings of this event. The returned `Eff _ Unit` is an Eff action that unregisters the listener. This is the observer pattern.
+To listen to a Behavior use `listen (value b)` handler or `listen (updates b)` handler
+`listen` function can subscribe only future values to prevent memory leak.
 
 #### `never`
 
@@ -62,6 +59,7 @@ The returning behavior is recommended to `retainB`.
 never :: forall e a. Event e a
 ```
 
+An event that never fires.
 
 #### `merge`
 
@@ -69,6 +67,8 @@ never :: forall e a. Event e a
 merge :: forall e a. Event e a -> Event e a -> Event e a
 ```
 
+Merge two streams of events of the same type.
+In the case where two event occurrences are simultaneous, both will be delivered.
 
 #### `filterJust`
 
@@ -76,6 +76,7 @@ merge :: forall e a. Event e a -> Event e a -> Event e a
 filterJust :: forall e a. Event e (Maybe a) -> Event e a
 ```
 
+Unwrap Just values, and discard event occurrences with Nothing values.
 
 #### `hold`
 
@@ -83,6 +84,9 @@ filterJust :: forall e a. Event e (Maybe a) -> Event e a
 hold :: forall e a. a -> Event e a -> Eff (ref :: Ref | e) (Behavior e a)
 ```
 
+Create a behavior with the specified initial value, that gets
+updated by the values coming through the event.
+The returning behavior is recommended to `retainB`.
 
 #### `updates`
 
@@ -90,6 +94,7 @@ hold :: forall e a. a -> Event e a -> Eff (ref :: Ref | e) (Behavior e a)
 updates :: forall e a. Behavior e a -> Event e a
 ```
 
+An event that gives the updates for the behavior.
 
 #### `value`
 
@@ -97,6 +102,7 @@ updates :: forall e a. Behavior e a -> Event e a
 value :: forall e a. Behavior e a -> Event e a
 ```
 
+An event that gives the current value and the updates for the behavior.
 
 #### `snapshot`
 
@@ -104,6 +110,7 @@ value :: forall e a. Behavior e a -> Event e a
 snapshot :: forall e a b c. (a -> b -> c) -> Event e a -> Behavior e b -> Event e c
 ```
 
+Sample the behavior at the time of the event firing.
 
 #### `switchE`
 
@@ -111,6 +118,7 @@ snapshot :: forall e a b c. (a -> b -> c) -> Event e a -> Behavior e b -> Event 
 switchE :: forall e a. Behavior e (Event e a) -> Event e a
 ```
 
+Unwrap an event inside a behavior to give a time-varying event implementation.
 
 #### `switch`
 
@@ -118,6 +126,7 @@ switchE :: forall e a. Behavior e (Event e a) -> Event e a
 switch :: forall e a. Behavior e (Behavior e a) -> Eff (ref :: Ref | e) (Behavior e a)
 ```
 
+Unwrap a behavior inside another behavior to give a time-varying behavior implementation.
 
 #### `sample`
 
@@ -125,6 +134,7 @@ switch :: forall e a. Behavior e (Behavior e a) -> Eff (ref :: Ref | e) (Behavio
 sample :: forall e a. Behavior e a -> Eff (ref :: Ref | e) a
 ```
 
+Obtain the current value of a behavior.
 
 #### `once`
 
@@ -132,6 +142,7 @@ sample :: forall e a. Behavior e a -> Eff (ref :: Ref | e) a
 once :: forall e a. Event e a -> Event e a
 ```
 
+Throw away all event occurrences except for the first one.
 
 #### `filterE`
 
@@ -139,6 +150,7 @@ once :: forall e a. Event e a -> Event e a
 filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
 ```
 
+Only keep event occurrences for which the predicate is true.
 
 #### `gate`
 
@@ -146,6 +158,7 @@ filterE :: forall e a. (a -> Boolean) -> Event e a -> Event e a
 gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
 ```
 
+Let event occurrences through only when the behavior's value is True.
 
 #### `collectE`
 
@@ -153,6 +166,7 @@ gate :: forall e a. Event e a -> Behavior e Boolean -> Event e a
 collectE :: forall e a b. (a -> b -> b) -> b -> Event e a -> Eff (ref :: Ref | e) (Behavior e b)
 ```
 
+Transform an event with a generalized state loop (a mealy machine). The function is passed the input and the old state and returns the new state and output value
 The returning behavior is recommended to `retainB`.
 
 #### `collect`
@@ -161,15 +175,22 @@ The returning behavior is recommended to `retainB`.
 collect :: forall e a s. (a -> s -> s) -> s -> Behavior e a -> Eff (ref :: Ref | e) (Behavior e s)
 ```
 
-The returning behavior is recommended to `retainB`.
-
 #### `accum`
 
 ``` purescript
 accum :: forall e a. a -> Event e (a -> a) -> Eff (ref :: Ref | e) (Behavior e a)
 ```
 
+Accumulate state changes given in the input event.
 The returning behavior is recommended to `retainB`.
+
+#### `executeEff`
+
+``` purescript
+executeEff :: forall e a. Event e (Eff (ref :: Ref | e) a) -> Eff (ref :: Ref | e) (Event e a)
+```
+
+Execute the specified IO operation synchronously and fire the output event.
 
 #### `retain`
 
@@ -191,6 +212,7 @@ simply registers a dummy no-op lisetener.
 cache :: forall e a. Event e a -> Eff (ref :: Ref | e) (Event e a)
 ```
 
+Cache the event occurrences and fire listeners.
 The returning event is recommended to `retain`.
 
 #### `retainB`
