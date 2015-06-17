@@ -100,6 +100,27 @@ behaviorSpec =
 
       release
 
+    it "bindBehavior2" do
+      es1 <- newEvent
+      es2 <- newEvent
+      a <- newAggregator
+      b1 <- 1 `hold` es1.event
+      b2 <- 1 `hold` es2.event
+      release <- retainB b1
+      release <- retainB b2
+      let b3 = (2 *) <$> b2
+      listenB (do
+        x <- b1
+        y <- b3
+        pure [x, y]) a.record
+      a.read >>= shouldEqual [[1, 2]]
+
+      es2.push 2
+      a.read >>= shouldEqual [[1, 2], [1, 4]]
+
+      es1.push 3
+      a.read >>= shouldEqual [[1, 2], [1, 4], [3, 4]]
+
     it "bind with self" do
       es <- newEvent
       a <- newAggregator

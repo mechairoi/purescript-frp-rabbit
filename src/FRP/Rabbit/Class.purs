@@ -37,11 +37,11 @@ instance bindBehavior :: Bind (Behavior e) where
     let bb0 = k a0
     b0 <- sample $ bb0
     b0 `hold` (Event \listener -> do
-                    unlistenerB <- listenTrans (updates $ bb0) listener
+                    unlistenerB <- listenTrans (value_ $ bb0) listener
                     unlistenerRef <- liftR $ newRef unlistenerB
-                    unlistenerA <- listenTrans (updates ba) (\a -> do
-                      liftR $ join $ readRef unlistenerRef
+                    unlistenerA <- listenTrans (value_ ba) (\a -> do
                       unlistenerB <- listenTrans (value $ k a) listener
+                      liftR $ join $ readRef unlistenerRef
                       liftR $ writeRef unlistenerRef $ unlistenerB
                       pure unit)
                     pure do

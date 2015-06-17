@@ -5,6 +5,7 @@ module FRP.Rabbit.Internal.Behavior
   , hold
   , updates
   , value
+  , value_
   , snapshot
   , switchE
   , sample
