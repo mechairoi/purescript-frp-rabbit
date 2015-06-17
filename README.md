@@ -5,7 +5,7 @@ A FRP library for PureScript.
 ## Features
 
 - UI binding to virtual-dom.
-- Semantics of `Reactive` type and `Event` type are inspired by [Push-pull functional reactive programming](http://conal.net/papers/push-pull-frp/).
+- [Sodium](https://github.com/SodiumFRP/sodium) like API
 
 ## Documentations
 - [Module documentation](MODULE.md)
